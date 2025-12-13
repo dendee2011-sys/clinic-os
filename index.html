@@ -5,34 +5,61 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clinic OS - ศูนย์อพยพอาคารวีสมหมาย</title>
     
-    <!-- 1. เครื่องมือพื้นฐาน (โหลดผ่านเน็ต) -->
+    <!-- 1. Styles -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- 2. React Core (Load from unpkg for stability) -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- 3. Babel -->
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    <!-- 2. Firebase (ฐานข้อมูล) -->
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
-
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <!-- 4. Firebase (Compat v9) -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
     <style>
         body { font-family: 'Sarabun', sans-serif; background-color: #f1f5f9; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        .card { @apply bg-white rounded-xl shadow-sm border border-slate-200 p-4; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white; }
+        }
+        .print-only { display: none; }
     </style>
 </head>
 <body>
-    <div id="root">
-        <div style="height:100vh;display:flex;justify-content:center;align-items:center;color:#64748b;">
-            กำลังโหลดระบบ...
-        </div>
+    <!-- ส่วนแสดงผลระหว่างรอโหลด (ป้องกันจอขาว) -->
+    <div id="loading-screen" style="height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background-color: #f8fafc; color: #334155;">
+        <div style="font-size: 24px; font-weight: bold; margin-bottom: 10px; color: #2563eb;">Clinic OS</div>
+        <div style="font-size: 16px;">กำลังเริ่มต้นระบบ...</div>
+        <div style="font-size: 12px; margin-top: 20px; color: #94a3b8;">หากค้างนานเกิน 10 วินาที กรุณารีเฟรชหน้าจอ</div>
     </div>
 
+    <div id="root"></div>
+
+    <!-- Script หลัก -->
     <script type="text/babel">
-        // --- 1. ตั้งค่า Firebase (ของคุณ) ---
+        // --- 0. ERROR HANDLING ---
+        const ErrorFallback = ({error}) => (
+            <div className="flex h-screen items-center justify-center bg-red-50 p-6">
+                <div className="text-center">
+                    <h1 className="text-2xl font-bold text-red-600 mb-2">⚠️ ระบบขัดข้อง</h1>
+                    <pre className="text-left bg-white p-4 rounded border border-red-200 text-sm overflow-auto max-w-lg mx-auto mb-4 text-red-800">
+                        {error.toString()}
+                    </pre>
+                    <button onClick={()=>window.location.reload()} className="bg-red-600 text-white px-6 py-2 rounded-lg font-bold">รีโหลดใหม่</button>
+                </div>
+            </div>
+        );
+
+        // --- 1. CONFIGURATION ---
+        const { useState, useEffect, useRef } = React;
+
         const firebaseConfig = {
             apiKey: "AIzaSyBnu9ZPf8ttxZl0gnbco7hk5WK7-ol3ckM",
             authDomain: "clinic-os-app.firebaseapp.com",
@@ -43,225 +70,258 @@
             measurementId: "G-Z8S0QFZ8JG"
         };
 
-        // เริ่มต้นระบบ
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        const auth = firebase.auth();
-        const db = firebase.firestore();
-        const appId = 'clinic-os-prod-v5'; // เปลี่ยนเวอร์ชันเพื่อความชัวร์
+        // --- 2. DATA CONSTANTS ---
+        const MOCK_PATIENTS = [
+            { id: '1', name: "นายสมชาย ใจดี", age: 45, gender: "ชาย", status: "waiting", queue: "A001", time: "08:30", idCard: "1100700123456", phone: "081-234-5678", screeningData: { symptom: "ปวดหัว ตัวร้อน", bp: "130/80", temp: "38.5", weight: "70" } },
+            { id: '2', name: "ด.ช.เก่ง กล้าหาญ", age: 8, gender: "ชาย", status: "screening", queue: "A002", time: "09:00", idCard: "1102000456789", phone: "089-999-9999", screeningData: {} }
+        ];
 
-        const { useState, useEffect } = React;
-
-        // --- 2. ไอคอน (สร้างเอง ไม่พึ่ง Library) ---
-        const Icon = ({ d, size=20, color="currentColor" }) => (
-            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                {d}
-            </svg>
-        );
-        
-        // รวมรูปไอคอน
-        const Icons = {
-            Home: <Icon d={<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></>} />,
-            UserPlus: <Icon d={<><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></>} />,
-            Clipboard: <Icon d={<><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></>} />,
-            Stethoscope: <Icon d={<><path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/></>} />,
-            Pill: <Icon d={<><path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/></>} />,
-            Activity: <Icon d={<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>} />,
-            Ambulance: <Icon d={<><rect x="1" y="3" width="22" height="13"/><path d="M16 8h4"/><path d="M18 6v4"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></>} />,
-            Menu: <Icon d={<><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="18" x2="20" y2="18"/></>} />
-        };
-
-        // --- 3. ข้อมูลตั้งต้น ---
-        const MED_DB = [
-            { name: "Paracetamol 500mg", unit: "เม็ด", desc: "1 เม็ด เวลาปวด" },
+        const MEDICINES = [
+            { name: "Paracetamol 500mg", unit: "เม็ด", desc: "1 เม็ด ทุก 4-6 ชม. เวลาปวด/มีไข้" },
             { name: "Amoxicillin 500mg", unit: "แคปซูล", desc: "1 เม็ด 3 เวลา หลังอาหาร" },
             { name: "CPM 4mg", unit: "เม็ด", desc: "1 เม็ด 3 เวลา หลังอาหาร" },
             { name: "Para Syrup (เด็ก)", unit: "ขวด", desc: "1 ช้อนชา เวลาปวด/มีไข้", isSyrup: true },
             { name: "ORS ผงเกลือแร่", unit: "ซอง", desc: "จิบทีละน้อย" }
         ];
 
-        // --- 4. ตัวโปรแกรม ---
+        // --- 3. ICONS (Simple SVG) ---
+        const Icon = ({ path, size = 20 }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {path}
+            </svg>
+        );
+        // Icons definition
+        const icons = {
+            menu: <path d="M4 6h16M4 12h16M4 18h16" />,
+            user: <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4" />,
+            plus: <path d="M12 5v14M5 12h14" />,
+            check: <polyline points="20 6 9 17 4 12" />,
+            x: <path d="M18 6 6 18M6 6l12 12" />,
+            clipboard: <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1" />,
+            activity: <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />,
+            search: <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />,
+            trash: <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />,
+            edit: <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" /><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />,
+            steth: <path d="M4.8 2.3A.3.3 0 1 0 5 2H4a2 2 0 0 0-2 2v5a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6V4a2 2 0 0 0-2-2h-1a.2.2 0 1 0 .3.3"/><path d="M8 15v1a6 6 0 0 0 6 6v0a6 6 0 0 0 6-6v-4"/><circle cx="20" cy="10" r="2"/>,
+            pill: <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z"/><path d="m8.5 8.5 7 7"/>,
+            bag: <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/>,
+            ambulance: <rect x="1" y="3" width="22" height="13" rx="2" ry="2"/><path d="M8 8h8"/><path d="M12 6v4"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/>,
+            printer: <polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/>
+        };
+
+        const SidebarBtn = ({ label, active, onClick, icon }) => (
+            <button onClick={onClick} className={`w-full text-left p-3 rounded mb-1 flex items-center gap-3 transition-colors ${active ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200'}`}>
+                <Icon path={icons[icon]} /> <span>{label}</span>
+            </button>
+        );
+
+        const Input = ({ label, value, onChange, placeholder, type="text" }) => (
+            <div className="mb-3">
+                <label className="block text-xs font-bold text-slate-500 mb-1">{label}</label>
+                <input type={type} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" value={value} onChange={onChange} placeholder={placeholder} />
+            </div>
+        );
+
+        // --- 4. MAIN APP ---
         function App() {
+            // Remove loading screen when mounted
+            useEffect(() => {
+                const loader = document.getElementById('loading-screen');
+                if(loader) loader.style.display = 'none';
+            }, []);
+
+            // States
             const [view, setView] = useState('dashboard');
             const [patients, setPatients] = useState([]);
             const [loading, setLoading] = useState(true);
             const [sidebarOpen, setSidebarOpen] = useState(false);
+            const [isOffline, setIsOffline] = useState(false);
+            
+            // Firebase Refs
+            const dbRef = useRef(null);
+            const appId = 'clinic-os-prod-v5';
 
-            // Form States
-            const [newPatient, setNewPatient] = useState({ idCard: '', name: '', age: '', gender: 'ชาย', phone: '' });
-            const [screening, setScreening] = useState({ bp: '', temp: '', weight: '', symptom: '' });
-            const [doctorNote, setDoctorNote] = useState({ diag: '', rx: '' });
+            // Forms
+            const [newPatient, setNewPatient] = useState({ idCard: '', name: '', age: '', gender: 'ชาย', phone: '', address: '', disease: '', allergy: '' });
             const [selectedId, setSelectedId] = useState(null);
+            const [screenData, setScreenData] = useState({ bp: '', temp: '', weight: '', symptom: '' });
+            const [doctorData, setDoctorData] = useState({ diagnosis: '', prescription: '' });
 
-            // เริ่มต้นระบบ
+            // Initialize System
             useEffect(() => {
-                auth.signInAnonymously().catch(e => console.error("Auth Error", e));
-                
-                const unsub = db.collection('artifacts').doc(appId).collection('queue')
-                    .onSnapshot(snap => {
-                        const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
-                        data.sort((a,b) => a.queue.localeCompare(b.queue));
-                        setPatients(data);
+                const init = async () => {
+                    try {
+                        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+                        await firebase.auth().signInAnonymously();
+                        
+                        dbRef.current = firebase.firestore();
+                        
+                        // Sync
+                        dbRef.current.collection('artifacts').doc(appId).collection('queue')
+                            .onSnapshot(snap => {
+                                const list = snap.docs.map(d => ({id: d.id, ...d.data()}));
+                                list.sort((a,b) => a.queue.localeCompare(b.queue));
+                                setPatients(list);
+                                setLoading(false);
+                            }, err => {
+                                console.warn("Offline Mode:", err);
+                                setIsOffline(true);
+                                setPatients(MOCK_PATIENTS);
+                                setLoading(false);
+                            });
+                    } catch (e) {
+                        console.error("Init Error:", e);
+                        setIsOffline(true);
+                        setPatients(MOCK_PATIENTS);
                         setLoading(false);
-                    }, err => {
-                        console.error(err);
-                        // ถ้าต่อเน็ตไม่ได้ ให้ใช้ข้อมูลจำลอง
-                        setPatients([
-                            { id: '1', queue: 'A001', name: 'นายสมชาย (Offline)', status: 'waiting', screening: { symptom: 'ไข้หวัด' } }
-                        ]);
-                        setLoading(false);
-                    });
-                return () => unsub();
+                    }
+                };
+                init();
             }, []);
 
-            // ฟังก์ชันต่างๆ
             const getPatient = () => patients.find(p => p.id === selectedId);
             const count = (s) => patients.filter(p => p.status === s).length;
 
+            // Actions
             const addPatient = async () => {
                 if(!newPatient.name) return alert("กรุณากรอกชื่อ");
                 const nextQ = `A${String(patients.length + 1).padStart(3, '0')}`;
-                await db.collection('artifacts').doc(appId).collection('queue').add({
-                    ...newPatient,
-                    queue: nextQ,
-                    status: 'screening',
+                const data = {
+                    ...newPatient, queue: nextQ, status: 'screening',
                     time: new Date().toLocaleTimeString('th-TH', {hour:'2-digit', minute:'2-digit'}),
-                    screening: {}
-                });
-                setNewPatient({ idCard: '', name: '', age: '', gender: 'ชาย', phone: '' });
+                    screening: {}, meds: {}
+                };
+                
+                if(!isOffline && dbRef.current) {
+                    await dbRef.current.collection('artifacts').doc(appId).collection('queue').add(data);
+                } else {
+                    setPatients([...patients, {id: Date.now().toString(), ...data}]);
+                }
+                setNewPatient({ idCard: '', name: '', age: '', gender: 'ชาย', phone: '', address: '', disease: '', allergy: '' });
                 alert("ลงทะเบียนแล้ว คิวที่ " + nextQ);
                 setView('screening');
             };
 
             const updateStatus = async (pid, status, extra = {}) => {
-                await db.collection('artifacts').doc(appId).collection('queue').doc(pid).update({
-                    status, ...extra
-                });
+                if(!isOffline && dbRef.current) {
+                    await dbRef.current.collection('artifacts').doc(appId).collection('queue').doc(pid).update({ status, ...extra });
+                } else {
+                    setPatients(prev => prev.map(p => p.id === pid ? { ...p, status, ...extra } : p));
+                }
                 setSelectedId(null);
             };
 
             const deletePatient = async (pid) => {
-                if(confirm("ลบรายการนี้?")) {
-                    await db.collection('artifacts').doc(appId).collection('queue').doc(pid).delete();
-                    if(selectedId === pid) setSelectedId(null);
-                }
+                if(!confirm("ยืนยันลบ?")) return;
+                if(!isOffline && dbRef.current) await dbRef.current.collection('artifacts').doc(appId).collection('queue').doc(pid).delete();
+                else setPatients(prev => prev.filter(p => p.id !== pid));
             };
 
-            if(loading) return <div className="flex h-screen items-center justify-center text-blue-600">กำลังเชื่อมต่อ...</div>;
+            if (loading) return <div className="flex h-screen items-center justify-center text-blue-600">กำลังเชื่อมต่อ...</div>;
 
-            // ส่วนแสดงผล (UI)
             return (
                 <div className="flex h-screen overflow-hidden">
                     {/* Sidebar */}
                     <div className={`fixed inset-y-0 z-50 w-64 bg-white shadow-lg transform transition ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0`}>
-                        <div className="p-6 border-b font-bold text-xl text-blue-600">Clinic OS</div>
-                        <div className="p-4 space-y-1">
-                            {[
-                                {id:'dashboard', icon:Icons.Home, label:'ภาพรวม'},
-                                {id:'register', icon:Icons.UserPlus, label:'ลงทะเบียน'},
-                                {id:'screening', icon:Icons.Clipboard, label:`คัดกรอง (${count('screening')})`},
-                                {id:'doctor', icon:Icons.Stethoscope, label:`ห้องตรวจ (${count('waiting')})`},
-                                {id:'pharmacy', icon:Icons.Pill, label:`ห้องยา (${count('pharmacy')})`},
-                                {id:'referral', icon:Icons.Ambulance, label:`ส่งต่อ (${count('referral')})`},
-                                {id:'history', icon:Icons.History, label:'ประวัติ'}
-                            ].map(m => (
-                                <button key={m.id} onClick={()=>{setView(m.id); setSidebarOpen(false);}} 
-                                    className={`w-full flex items-center gap-3 p-3 rounded ${view===m.id ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-100'}`}>
-                                    {m.icon} {m.label}
-                                </button>
-                            ))}
+                        <div className="p-6 border-b font-bold text-xl text-blue-600 flex items-center gap-2">
+                            <Icon name="activity"/> Clinic OS
                         </div>
+                        <div className="p-4 space-y-1">
+                            <SidebarBtn label="ภาพรวม" active={view==='dashboard'} onClick={()=>setView('dashboard')} icon="clipboard"/>
+                            <SidebarBtn label="ลงทะเบียน" active={view==='register'} onClick={()=>setView('register')} icon="plus"/>
+                            <SidebarBtn label={`คัดกรอง (${count('screening')})`} active={view==='screening'} onClick={()=>setView('screening')} icon="user"/>
+                            <SidebarBtn label={`ห้องตรวจ (${count('waiting')})`} active={view==='doctor'} onClick={()=>setView('doctor')} icon="steth"/>
+                            <SidebarBtn label={`ห้องยา (${count('pharmacy')})`} active={view==='pharmacy'} onClick={()=>setView('pharmacy')} icon="bag"/>
+                            <SidebarBtn label={`ส่งต่อ (${count('referral')})`} active={view==='referral'} onClick={()=>setView('referral')} icon="ambulance"/>
+                            <SidebarBtn label="ประวัติ" active={view==='history'} onClick={()=>setView('history')} icon="menu"/>
+                        </div>
+                        {isOffline && <div className="p-2 bg-red-100 text-red-600 text-xs text-center">โหมดออฟไลน์ (ข้อมูลจะไม่บันทึกจริง)</div>}
                     </div>
 
                     {/* Main */}
                     <div className="flex-1 flex flex-col h-screen lg:ml-64">
                         <header className="h-16 bg-white border-b flex items-center justify-between px-4">
-                            <button onClick={()=>setSidebarOpen(true)} className="lg:hidden p-2">{Icons.Menu}</button>
+                            <button onClick={()=>setSidebarOpen(!sidebarOpen)} className="lg:hidden"><Icon name="menu"/></button>
                             <div className="font-bold text-slate-700">ศูนย์อพยพอาคารวีสมหมาย</div>
                         </header>
-
+                        
                         <div className="flex-1 overflow-auto p-4 bg-slate-50">
                             
-                            {/* Dashboard */}
                             {view === 'dashboard' && <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <div className="card border-l-4 border-orange-500"><div>รอคัดกรอง</div><div className="text-3xl font-bold">{count('screening')}</div></div>
-                                <div className="card border-l-4 border-blue-500"><div>รอตรวจ</div><div className="text-3xl font-bold">{count('waiting')}</div></div>
-                                <div className="card border-l-4 border-purple-500"><div>รอรับยา</div><div className="text-3xl font-bold">{count('pharmacy')}</div></div>
-                                <div className="card border-l-4 border-green-500"><div>เสร็จสิ้น</div><div className="text-3xl font-bold">{count('completed')}</div></div>
+                                <div className="bg-white p-6 rounded shadow border-l-4 border-orange-500"><div>รอคัดกรอง</div><div className="text-3xl font-bold">{count('screening')}</div></div>
+                                <div className="bg-white p-6 rounded shadow border-l-4 border-blue-500"><div>รอตรวจ</div><div className="text-3xl font-bold">{count('waiting')}</div></div>
+                                <div className="bg-white p-6 rounded shadow border-l-4 border-purple-500"><div>รอรับยา</div><div className="text-3xl font-bold">{count('pharmacy')}</div></div>
+                                <div className="bg-white p-6 rounded shadow border-l-4 border-green-500"><div>เสร็จสิ้น</div><div className="text-3xl font-bold">{count('completed')}</div></div>
                             </div>}
 
-                            {/* Register */}
-                            {view === 'register' && <div className="max-w-lg mx-auto card space-y-4">
-                                <h2 className="text-lg font-bold text-blue-600">ลงทะเบียนผู้ป่วยใหม่</h2>
-                                <input className="w-full p-2 border rounded" placeholder="เลขบัตรประชาชน" value={newPatient.idCard} onChange={e=>setNewPatient({...newPatient, idCard:e.target.value})} />
-                                <input className="w-full p-2 border rounded" placeholder="ชื่อ-สกุล" value={newPatient.name} onChange={e=>setNewPatient({...newPatient, name:e.target.value})} />
+                            {view === 'register' && <div className="max-w-lg mx-auto bg-white p-6 rounded shadow space-y-4">
+                                <h2 className="text-lg font-bold text-blue-600">ลงทะเบียนผู้ป่วย</h2>
+                                <Input label="เลขบัตร (13 หลัก)" value={newPatient.idCard} onChange={e=>setNewPatient({...newPatient, idCard:e.target.value})} />
+                                <Input label="ชื่อ-สกุล" value={newPatient.name} onChange={e=>setNewPatient({...newPatient, name:e.target.value})} />
                                 <div className="grid grid-cols-2 gap-2">
-                                    <input className="w-full p-2 border rounded" placeholder="อายุ" value={newPatient.age} onChange={e=>setNewPatient({...newPatient, age:e.target.value})} />
-                                    <select className="w-full p-2 border rounded" value={newPatient.gender} onChange={e=>setNewPatient({...newPatient, gender:e.target.value})}><option>ชาย</option><option>หญิง</option></select>
+                                    <Input label="อายุ" value={newPatient.age} onChange={e=>setNewPatient({...newPatient, age:e.target.value})} />
+                                    <div><label className="text-xs font-bold text-slate-500">เพศ</label><select className="w-full p-2 border rounded" value={newPatient.gender} onChange={e=>setNewPatient({...newPatient, gender:e.target.value})}><option>ชาย</option><option>หญิง</option></select></div>
                                 </div>
-                                <input className="w-full p-2 border rounded" placeholder="เบอร์โทร" value={newPatient.phone} onChange={e=>setNewPatient({...newPatient, phone:e.target.value})} />
+                                <Input label="เบอร์โทร" value={newPatient.phone} onChange={e=>setNewPatient({...newPatient, phone:e.target.value})} />
+                                <Input label="ที่อยู่" value={newPatient.address} onChange={e=>setNewPatient({...newPatient, address:e.target.value})} />
+                                <Input label="โรคประจำตัว" value={newPatient.disease} onChange={e=>setNewPatient({...newPatient, disease:e.target.value})} />
+                                <Input label="แพ้ยา" value={newPatient.allergy} onChange={e=>setNewPatient({...newPatient, allergy:e.target.value})} />
                                 <button onClick={addPatient} className="w-full bg-blue-600 text-white p-3 rounded font-bold">บันทึก</button>
                             </div>}
 
-                            {/* Screening */}
                             {view === 'screening' && <div className="flex flex-col md:flex-row gap-4 h-full">
                                 <div className="w-full md:w-1/3 bg-white rounded shadow overflow-y-auto">
                                     <div className="p-3 bg-orange-100 font-bold text-orange-800">คิวรอคัดกรอง</div>
                                     {patients.filter(p=>p.status==='screening').map(p=>(
-                                        <div key={p.id} onClick={()=>{setSelectedId(p.id); setScreening(p.screening||{})}} className="p-3 border-b hover:bg-orange-50 cursor-pointer flex justify-between">
+                                        <div key={p.id} onClick={()=>{setSelectedId(p.id); setScreenData({...screenData, ...p.screening})}} className="p-3 border-b hover:bg-orange-50 cursor-pointer flex justify-between">
                                             <span>{p.queue} {p.name}</span>
-                                            <button onClick={(e)=>{e.stopPropagation();deletePatient(p.id)}} className="text-red-500">ลบ</button>
+                                            <button onClick={(e)=>{e.stopPropagation();deletePatient(p.id)}} className="text-red-500"><Icon name="trash" size={14}/></button>
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex-1 card">
-                                    {selectedId ? <div className="space-y-4">
-                                        <h3 className="font-bold text-lg">{getPatient()?.name}</h3>
-                                        <div className="grid grid-cols-2 gap-2">
-                                            <input className="border p-2 rounded" placeholder="ความดัน (BP)" value={screening.bp} onChange={e=>setScreening({...screening, bp:e.target.value})} />
-                                            <input className="border p-2 rounded" placeholder="อุณหภูมิ (T)" value={screening.temp} onChange={e=>setScreening({...screening, temp:e.target.value})} />
-                                            <input className="border p-2 rounded" placeholder="ชีพจร (P)" value={screening.pulse} onChange={e=>setScreening({...screening, pulse:e.target.value})} />
-                                            <input className="border p-2 rounded" placeholder="น้ำหนัก (kg)" value={screening.weight} onChange={e=>setScreening({...screening, weight:e.target.value})} />
+                                <div className="flex-1 bg-white rounded shadow p-6">
+                                    {selectedId ? <div>
+                                        <h3 className="font-bold text-lg mb-4">{getPatient()?.name}</h3>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
+                                            <Input label="BP" value={screenData.bp} onChange={e=>setScreenData({...screenData, bp:e.target.value})} />
+                                            <Input label="Temp" value={screenData.temp} onChange={e=>setScreenData({...screenData, temp:e.target.value})} />
+                                            <Input label="Pulse" value={screenData.pulse} onChange={e=>setScreenData({...screenData, pulse:e.target.value})} />
+                                            <Input label="Weight" value={screenData.weight} onChange={e=>setScreenData({...screenData, weight:e.target.value})} />
                                         </div>
-                                        <textarea className="w-full border p-2 rounded" placeholder="อาการเบื้องต้น..." value={screening.symptom} onChange={e=>setScreening({...screening, symptom:e.target.value})}></textarea>
-                                        <button onClick={()=>updateStatus(selectedId, 'waiting', {screening})} className="w-full bg-orange-500 text-white p-3 rounded font-bold">ส่งห้องตรวจ</button>
+                                        <Input label="อาการ (CC)" value={screenData.symptom} onChange={e=>setScreenData({...screenData, symptom:e.target.value})} />
+                                        <button onClick={()=>updateStatus(selectedId, 'waiting', {screening: screenData})} className="w-full bg-orange-500 text-white p-3 rounded font-bold mt-4">ส่งห้องตรวจ</button>
                                     </div> : <div className="text-center mt-10 text-gray-400">เลือกผู้ป่วย</div>}
                                 </div>
                             </div>}
 
-                            {/* Doctor */}
                             {view === 'doctor' && <div className="flex flex-col md:flex-row gap-4 h-full">
                                 <div className="w-full md:w-1/3 bg-white rounded shadow overflow-y-auto">
                                     <div className="p-3 bg-blue-100 font-bold text-blue-800">คิวรอตรวจ</div>
                                     {patients.filter(p=>p.status==='waiting').map(p=>(
-                                        <div key={p.id} onClick={()=>{setSelectedId(p.id); setDoctorData({diagnosis:p.diagnosis||'', prescription:p.treatment||''})}} className="p-3 border-b hover:bg-blue-50 cursor-pointer">
+                                        <div key={p.id} onClick={()=>{setSelectedId(p.id); setDoctorData({diagnosis: p.diagnosis||'', prescription: p.prescription||''})}} className="p-3 border-b hover:bg-blue-50 cursor-pointer">
                                             {p.queue} {p.name}
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex-1 card overflow-auto">
+                                <div className="flex-1 bg-white rounded shadow p-6 overflow-auto">
                                     {selectedId ? <div className="space-y-4">
-                                        <div className="flex justify-between border-b pb-2"><h3 className="font-bold text-lg">{getPatient()?.name}</h3><span className="text-blue-600 font-bold">{getPatient()?.queue}</span></div>
+                                        <div className="flex justify-between border-b pb-2"><h3 className="text-xl font-bold">{getPatient()?.name}</h3><span className="text-blue-600 font-bold">{getPatient()?.queue}</span></div>
+                                        {getPatient()?.allergy && <div className="bg-red-100 text-red-800 p-2 rounded text-center font-bold">⚠️ แพ้: {getPatient().allergy}</div>}
                                         <div className="bg-slate-50 p-2 rounded text-sm grid grid-cols-4 gap-2">
                                             <span>BP: {getPatient()?.screening?.bp}</span><span>T: {getPatient()?.screening?.temp}</span>
                                             <span>P: {getPatient()?.screening?.pulse}</span><span>Wt: {getPatient()?.screening?.weight}</span>
                                         </div>
                                         <div><label className="font-bold">อาการ:</label> {getPatient()?.screening?.symptom}</div>
                                         <div><label className="font-bold">วินิจฉัย</label><textarea className="w-full border p-2 rounded" value={doctorData.diagnosis} onChange={e=>setDoctorData({...doctorData, diagnosis:e.target.value})}></textarea></div>
-                                        <div>
-                                            <div className="flex justify-between"><label className="font-bold">สั่งยา</label><span className="text-xs text-blue-600 cursor-pointer" onClick={()=>setDoctorData(p=>({...p, prescription: p.prescription + '- Paracetamol 500mg 1 เม็ด prn\n'}))}>+ พารา</span></div>
-                                            <textarea className="w-full border p-2 rounded font-mono" rows="4" value={doctorData.prescription} onChange={e=>setDoctorData({...doctorData, prescription:e.target.value})}></textarea>
-                                        </div>
+                                        <div><label className="font-bold">สั่งยา</label><textarea className="w-full border p-2 rounded h-32" value={doctorData.prescription} onChange={e=>setDoctorData({...doctorData, prescription:e.target.value})}></textarea></div>
                                         <div className="flex gap-2">
-                                            <button onClick={()=>updateStatus(selectedId, 'pharmacy', {diagnosis:doctorData.diagnosis, treatment:doctorData.prescription})} className="flex-1 bg-green-600 text-white p-3 rounded font-bold">บันทึก & ส่งห้องยา</button>
-                                            <button onClick={()=>updateStatus(selectedId, 'referral', {diagnosis:doctorData.diagnosis, treatment:doctorData.prescription})} className="px-4 bg-red-600 text-white rounded font-bold">ส่งตัว</button>
+                                            <button onClick={()=>updateStatus(selectedId, 'pharmacy', doctorData)} className="flex-1 bg-green-600 text-white p-3 rounded font-bold">บันทึก & ส่งห้องยา</button>
+                                            <button onClick={()=>updateStatus(selectedId, 'referral', doctorData)} className="px-6 bg-red-600 text-white rounded font-bold">ส่งตัว</button>
                                         </div>
                                     </div> : <div className="text-center mt-10 text-gray-400">เลือกผู้ป่วย</div>}
                                 </div>
                             </div>}
 
-                            {/* Pharmacy */}
                             {view === 'pharmacy' && <div className="flex flex-col md:flex-row gap-4 h-full">
                                 <div className="w-full md:w-1/3 bg-white rounded shadow overflow-y-auto">
                                     <div className="p-3 bg-purple-100 font-bold text-purple-800">รอจ่ายยา</div>
@@ -271,17 +331,24 @@
                                         </div>
                                     ))}
                                 </div>
-                                <div className="flex-1 card">
+                                <div className="flex-1 bg-white rounded shadow p-6">
                                     {selectedId ? <div className="space-y-4">
-                                        <h3 className="font-bold text-lg">{getPatient()?.name}</h3>
+                                        <h3 className="font-bold text-lg border-b pb-2">{getPatient()?.name}</h3>
                                         <div className="bg-slate-50 p-2 rounded"><strong>Dx:</strong> {getPatient()?.diagnosis}</div>
-                                        <div className="border p-2 rounded font-mono whitespace-pre-wrap">{getPatient()?.treatment}</div>
-                                        <button onClick={()=>updateStatus(selectedId, 'completed')} className="w-full bg-purple-600 text-white p-3 rounded font-bold">จ่ายยาเรียบร้อย</button>
+                                        <div className="border p-2 rounded font-mono whitespace-pre-wrap">{getPatient()?.prescription}</div>
+                                        <div className="flex gap-2">
+                                            <button onClick={()=>window.print()} className="flex-1 border p-3 rounded">พิมพ์ฉลาก</button>
+                                            <button onClick={()=>updateStatus(selectedId, 'completed')} className="flex-1 bg-purple-600 text-white p-3 rounded font-bold">จ่ายยาเรียบร้อย</button>
+                                        </div>
+                                        <div className="print-only border p-4 mt-4">
+                                            <div className="text-center font-bold border-b mb-2">ฉลากยา</div>
+                                            <p><strong>คนไข้:</strong> {getPatient()?.name}</p>
+                                            <pre className="font-sans whitespace-pre-wrap">{getPatient()?.prescription}</pre>
+                                        </div>
                                     </div> : <div className="text-center mt-10 text-gray-400">เลือกรายการ</div>}
                                 </div>
                             </div>}
 
-                            {/* Referral */}
                             {view === 'referral' && <div className="flex flex-col md:flex-row gap-4 h-full">
                                 <div className="w-full md:w-1/3 bg-white rounded shadow overflow-y-auto">
                                     <div className="p-3 bg-red-100 font-bold text-red-800">รอส่งตัว</div>
@@ -289,12 +356,12 @@
                                         <div key={p.id} onClick={()=>setSelectedId(p.id)} className="p-3 border-b hover:bg-red-50 cursor-pointer">{p.name}</div>
                                     ))}
                                 </div>
-                                <div className="flex-1 card print:shadow-none">
+                                <div className="flex-1 bg-white rounded shadow p-6 print:shadow-none">
                                     {selectedId ? <div className="space-y-4">
                                         <div className="text-center border-b pb-4"><h1 className="text-2xl font-bold">ใบส่งตัวผู้ป่วย</h1><p>ศูนย์อพยพอาคารวีสมหมาย</p></div>
                                         <p><strong>ชื่อ:</strong> {getPatient()?.name} <strong>อายุ:</strong> {getPatient()?.age}</p>
                                         <p><strong>การวินิจฉัย:</strong> {getPatient()?.diagnosis}</p>
-                                        <p><strong>การรักษา:</strong> {getPatient()?.treatment}</p>
+                                        <p><strong>การรักษา:</strong> {getPatient()?.prescription}</p>
                                         <div className="mt-10 pt-10 border-t text-center no-print">
                                             <button onClick={()=>window.print()} className="bg-blue-600 text-white px-6 py-2 rounded mr-2">พิมพ์</button>
                                             <button onClick={()=>updateStatus(selectedId, 'completed')} className="bg-green-600 text-white px-6 py-2 rounded">จบงาน</button>
@@ -303,14 +370,21 @@
                                 </div>
                             </div>}
 
+                            {view === 'history' && <div className="bg-white rounded shadow overflow-hidden">
+                                <table className="w-full text-left"><thead className="bg-slate-100 border-b"><tr><th className="p-3">เวลา</th><th className="p-3">ชื่อ</th><th className="p-3">สถานะ</th></tr></thead><tbody>
+                                    {patients.filter(p=>p.status==='completed' || p.status==='referral').map(p=><tr key={p.id} className="border-b"><td className="p-3 text-sm">{p.time}</td><td className="p-3">{p.name}</td><td className="p-3"><span className="bg-green-100 text-green-800 px-2 rounded text-xs">{p.status}</span></td></tr>)}
+                                </tbody></table>
+                            </div>}
                         </div>
                     </div>
                 </div>
             );
         }
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
+        const root = document.getElementById('root');
+        ReactDOM.render(<App />, root);
     </script>
 </body>
 </html>
+
+
