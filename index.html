@@ -61,7 +61,7 @@
             }
         }
 
-        // --- 1. FIREBASE CONFIG & INIT (Updated for Canvas Environment) ---
+        // --- 1. FIREBASE CONFIG & INIT ---
         let firebaseConfig;
         if (typeof __firebase_config !== 'undefined') {
             firebaseConfig = JSON.parse(__firebase_config);
@@ -117,7 +117,8 @@
             Loader2: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin"><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
             Save: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>,
             Phone: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
-            Ambulance: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle><path d="M10 8V14"></path><path d="M7 11H13"></path></svg>
+            Ambulance: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle><path d="M10 8V14"></path><path d="M7 11H13"></path></svg>,
+            Download: () => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
         };
 
         const { useState, useEffect, useRef } = React;
@@ -226,6 +227,8 @@
             const [activeTab, setActiveTab] = useState('dashboard');
             const [sidebarOpen, setSidebarOpen] = useState(false);
             const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+            const [exportStart, setExportStart] = useState(new Date().toISOString().split('T')[0]);
+            const [exportEnd, setExportEnd] = useState(new Date().toISOString().split('T')[0]);
             
             const [patients, setPatients] = useState([]);
             const [masterDB, setMasterDB] = useState([]);
@@ -414,6 +417,44 @@
                 setLabelsToPrint({patient:p, items}); setShowLabelModal(true);
             };
 
+            const exportToExcel = () => {
+                const dataToExport = patients.filter(p => {
+                    const pDate = p.date || p.time; 
+                    return (!exportStart || p.date >= exportStart) && (!exportEnd || p.date <= exportEnd);
+                });
+
+                if (dataToExport.length === 0) return alert("ไม่พบข้อมูลในช่วงเวลาที่เลือก");
+
+                let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
+                csvContent += "วันที่,เวลา,คิว,ชื่อ-สกุล,เลขบัตร,เพศ,อายุ,อาการ,วินิจฉัย,การรักษา,สถานะ\n";
+
+                dataToExport.forEach(row => {
+                    const clean = (text) => text ? `"${text.replace(/"/g, '""').replace(/\n/g, ' ')}"` : "";
+                    const rowData = [
+                        row.date || "",
+                        row.time || "",
+                        row.queue || "",
+                        clean(row.name),
+                        `'${row.idCard}`,
+                        row.gender,
+                        row.age,
+                        clean(row.screeningData?.symptom),
+                        clean(row.diagnosis),
+                        clean(row.treatment),
+                        row.status
+                    ];
+                    csvContent += rowData.join(",") + "\n";
+                });
+
+                const encodedUri = encodeURI(csvContent);
+                const link = document.createElement("a");
+                link.setAttribute("href", encodedUri);
+                link.setAttribute("download", `clinic_data_${exportStart}_to_${exportEnd}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+
             const screeningCount = patients.filter(p => p.status === 'screening').length;
             const waitingCount = patients.filter(p => p.status === 'waiting').length;
             const pharmacyCount = patients.filter(p => p.status === 'pharmacy').length;
@@ -434,7 +475,6 @@
                     {showDiagModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><div className="bg-white rounded-xl w-full max-w-sm p-4 space-y-3"><h3>เพิ่มโรคใหม่</h3><input className="w-full border p-2 rounded" placeholder="รหัส" value={customDiag.code} onChange={e=>setCustomDiag({...customDiag, code:e.target.value})}/><input className="w-full border p-2 rounded" placeholder="ชื่อโรค" value={customDiag.name} onChange={e=>setCustomDiag({...customDiag, name:e.target.value})}/><div className="flex justify-end gap-2"><button onClick={()=>setShowDiagModal(false)} className="border px-3 py-1 rounded">ยกเลิก</button><button onClick={handleSaveCustomDiag} className="bg-blue-600 text-white px-3 py-1 rounded">บันทึก</button></div></div></div>}
                     {showLabelModal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"><div className="bg-white p-6 rounded-xl w-full max-w-2xl h-[80vh] flex flex-col"><div className="flex justify-between mb-4"><h3 className="font-bold">พิมพ์ฉลากยา</h3><button onClick={()=>setShowLabelModal(false)}><Icons.X/></button></div><div className="flex-1 overflow-auto grid grid-cols-2 gap-4">{labelsToPrint.items.map((m,i)=><div key={i} className="border p-4 rounded text-center shadow-sm"><div className="text-sm font-bold text-slate-700">ศูนย์อพยพอาคารวีสมหมาย ศรีสะเกษ</div><div className="text-xs mb-2 text-slate-500">{labelsToPrint.patient.name}</div><div className="font-bold text-lg mb-1">{m.name}</div><div className="text-sm">{m.detail.split('|')[1]}</div></div>)}</div><div className="mt-4 flex justify-end"><button onClick={()=>window.print()} className="bg-blue-600 text-white px-4 py-2 rounded flex gap-2 items-center"><Icons.Printer size={16}/> สั่งพิมพ์</button></div></div></div>}
                     {editingPatient && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"><div className="bg-white rounded-xl w-full max-w-md p-6 space-y-4"><h3 className="font-bold text-lg">แก้ไขข้อมูล</h3><InputGroup label="ชื่อ-สกุล" value={editingPatient.name} onChange={e=>setEditingPatient({...editingPatient, name:e.target.value})}/><InputGroup label="เบอร์โทร" value={editingPatient.phone} onChange={e=>setEditingPatient({...editingPatient, phone:e.target.value})}/><div className="grid grid-cols-1 gap-2"><label className="text-xs font-bold text-slate-500">การวินิจฉัย</label><textarea className="w-full p-2 border rounded" value={editingPatient.diagnosis||''} onChange={e=>setEditingPatient({...editingPatient, diagnosis:e.target.value})}></textarea></div><div className="grid grid-cols-1 gap-2"><label className="text-xs font-bold text-slate-500">การรักษา/ยา</label><textarea className="w-full p-2 border rounded" value={editingPatient.treatment||''} onChange={e=>setEditingPatient({...editingPatient, treatment:e.target.value})}></textarea></div>
-                    {/* Add Referral Data Editing */}
                     {editingPatient.status === 'referred' && (
                         <div className="bg-red-50 p-3 rounded border border-red-100 space-y-2">
                             <label className="text-xs font-bold text-red-700">ข้อมูลการส่งต่อ</label>
@@ -461,6 +501,7 @@
                             <SidebarItem icon="Ambulance" label="ส่งต่อผู้ป่วย" count={referralCount} active={activeTab==='referral'} onClick={()=>{setActiveTab('referral');setSidebarOpen(false)}} />
                             <div className="pt-4 pb-2 px-3 text-xs font-bold text-slate-400">ข้อมูล</div>
                             <SidebarItem icon="History" label="ประวัติการรักษา" active={activeTab==='history'} onClick={()=>{setActiveTab('history');setSidebarOpen(false)}} />
+                            <SidebarItem icon="Download" label="ส่งออกข้อมูล" active={activeTab==='export'} onClick={()=>{setActiveTab('export');setSidebarOpen(false)}} />
                         </div>
                     </aside>
 
@@ -521,6 +562,65 @@
                             {activeTab === 'referral' && <div className="flex flex-col lg:flex-row gap-4 h-full"><div className="w-full lg:w-1/3 bg-white border rounded-xl overflow-hidden flex flex-col"><div className="p-3 bg-red-100 font-bold text-red-800 flex gap-2 items-center"><Icons.Ambulance size={16}/> รายการส่งต่อ</div><div className="flex-1 overflow-auto">{patients.filter(p=>p.status==='referred').map(p=><div key={p.id} onClick={()=>handleSelectReferral(p)} className={`p-3 border-b cursor-pointer flex justify-between group relative pr-16 ${selectedReferral?.id===p.id ? 'bg-red-50' : 'hover:bg-slate-50'}`}><div><span className="font-bold mr-2 text-red-700">{p.queue}</span>{p.name}</div><div className="text-xs text-slate-500">{p.referralData?.hospital}</div><div className="hidden group-hover:flex absolute right-2 top-2 gap-2 bg-white p-1 rounded shadow"><button onClick={(e) => handleEditPatientClick(e, p)} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Icons.Edit size={14} /></button><button onClick={(e) => handleDeletePatient(e, p)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Icons.Trash2 size={14} /></button></div></div>)}</div></div><div className="flex-1 bg-white border rounded-xl p-6 overflow-auto flex flex-col items-center justify-center">{selectedReferral ? <div className="w-full max-w-2xl bg-white shadow-lg border p-8 space-y-6"><div className="text-center border-b pb-4"><h2 className="font-bold text-2xl">ใบส่งต่อผู้ป่วย</h2><p className="text-slate-500">ศูนย์อพยพอาคารวีสมหมาย</p></div><div className="grid grid-cols-2 gap-4"><div><strong>ชื่อ:</strong> {selectedReferral.name}</div><div><strong>ปลายทาง:</strong> {selectedReferral.referralData?.hospital}</div><div><strong>วินิจฉัย:</strong> {selectedReferral.diagnosis}</div><div><strong>ความเร่งด่วน:</strong> {selectedReferral.referralData?.urgency}</div></div><div className="bg-slate-50 p-4 rounded border"><p className="font-bold text-sm mb-1">สาเหตุการส่งต่อ</p><p>{selectedReferral.referralData?.reason}</p></div><button onClick={()=>window.print()} className="w-full bg-blue-600 text-white p-3 rounded font-bold flex items-center justify-center gap-2"><Icons.Printer/> พิมพ์ใบส่งตัว</button></div> : <div className="text-center text-gray-400">เลือกผู้ป่วยเพื่อดูรายละเอียด</div>}</div></div>}
 
                             {activeTab === 'history' && <div className="bg-white border rounded-xl overflow-hidden p-6"><div className="flex items-center gap-2 mb-4"><span className="font-bold">เลือกวันที่:</span><input type="date" className="border p-2 rounded" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/></div><table className="w-full text-left"><thead className="bg-slate-50 border-b"><tr><th className="p-3">เวลา</th><th className="p-3">ชื่อ</th><th className="p-3">วินิจฉัย</th><th className="p-3">สถานะ</th><th className="p-3">จัดการ</th></tr></thead><tbody>{filteredPatients.filter(p=>['completed','referred'].includes(p.status)).length > 0 ? filteredPatients.filter(p=>['completed','referred'].includes(p.status)).map(p=><tr key={p.id} className="border-b hover:bg-slate-50"><td className="p-3 text-sm">{p.time}</td><td className="p-3">{p.name}</td><td className="p-3 text-sm text-slate-600">{p.diagnosis}</td><td className="p-3">{p.status==='referred' ? <span className="bg-red-100 text-red-800 px-2 rounded text-xs">ส่งต่อ</span> : <span className="bg-green-100 text-green-800 px-2 rounded text-xs">เสร็จสิ้น</span>}</td><td className="p-3 flex gap-2"><button onClick={(e)=>handleEditPatientClick(e,p)} className="bg-blue-100 text-blue-600 p-1 rounded hover:bg-blue-200"><Icons.Edit size={16}/></button><button onClick={(e)=>handleDeletePatient(e,p)} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"><Icons.Trash2 size={16}/></button></td></tr>) : <tr><td colSpan="5" className="p-8 text-center text-gray-400">ไม่พบประวัติการรักษาในวันที่เลือก</td></tr>}</tbody></table></div>}
+
+                            {activeTab === 'export' && (
+                                <div className="max-w-4xl mx-auto space-y-6">
+                                    <div className="bg-white p-6 rounded-xl border shadow-sm">
+                                        <h2 className="font-bold text-xl mb-4 text-blue-700 flex items-center gap-2"><Icons.Download/> ส่งออกข้อมูลผู้ป่วย (Excel/CSV)</h2>
+                                        
+                                        <div className="flex gap-4 items-end bg-slate-50 p-4 rounded-lg border mb-6">
+                                            <div>
+                                                <label className="block text-sm font-bold mb-1">ตั้งแต่วันที่</label>
+                                                <input type="date" className="border p-2 rounded w-40" value={exportStart} onChange={e=>setExportStart(e.target.value)} />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-bold mb-1">ถึงวันที่</label>
+                                                <input type="date" className="border p-2 rounded w-40" value={exportEnd} onChange={e=>setExportEnd(e.target.value)} />
+                                            </div>
+                                            <button onClick={exportToExcel} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-bold shadow flex gap-2 items-center h-10">
+                                                <Icons.Save size={18}/> ดาวน์โหลดไฟล์
+                                            </button>
+                                        </div>
+
+                                        <h3 className="font-bold text-sm text-gray-500 mb-2">ตัวอย่างข้อมูลที่จะส่งออก (Preview)</h3>
+                                        <div className="overflow-x-auto border rounded">
+                                            <table className="w-full text-sm text-left">
+                                                <thead className="bg-gray-100">
+                                                    <tr>
+                                                        <th className="p-2 border-b">วันที่</th>
+                                                        <th className="p-2 border-b">คิว</th>
+                                                        <th className="p-2 border-b">ชื่อ-สกุล</th>
+                                                        <th className="p-2 border-b">อาการ</th>
+                                                        <th className="p-2 border-b">วินิจฉัย</th>
+                                                        <th className="p-2 border-b">สถานะ</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {patients.filter(p => {
+                                                        const pDate = p.date || p.time; 
+                                                        return (!exportStart || p.date >= exportStart) && (!exportEnd || p.date <= exportEnd);
+                                                    }).slice(0, 5).map((p, i) => (
+                                                        <tr key={i} className="border-b">
+                                                            <td className="p-2">{p.date}</td>
+                                                            <td className="p-2">{p.queue}</td>
+                                                            <td className="p-2">{p.name}</td>
+                                                            <td className="p-2 truncate max-w-xs">{p.screeningData?.symptom}</td>
+                                                            <td className="p-2 truncate max-w-xs">{p.diagnosis}</td>
+                                                            <td className="p-2">{p.status}</td>
+                                                        </tr>
+                                                    ))}
+                                                    {patients.filter(p => (!exportStart || p.date >= exportStart) && (!exportEnd || p.date <= exportEnd)).length === 0 && (
+                                                        <tr><td colSpan="6" className="p-4 text-center text-gray-400">ไม่พบข้อมูลในช่วงเวลาที่เลือก</td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                        <div className="text-right text-xs text-gray-400 mt-2">
+                                            * แสดงตัวอย่างสูงสุด 5 รายการ
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </main>
                     </ErrorBoundary>
@@ -533,5 +633,4 @@
     </script>
 </body>
 </html>
-
 
