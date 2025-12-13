@@ -426,7 +426,8 @@
                 if (dataToExport.length === 0) return alert("ไม่พบข้อมูลในช่วงเวลาที่เลือก");
 
                 let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
-                csvContent += "วันที่,เวลา,คิว,ชื่อ-สกุล,เลขบัตร,เพศ,อายุ,อาการ,วินิจฉัย,การรักษา,สถานะ\n";
+                // Updated Header with ALL fields
+                csvContent += "วันที่,เวลา,คิว,ชื่อ-สกุล,เลขบัตร,วันเกิด,อายุ,เพศ,เบอร์โทร,ที่อยู่,โรคประจำตัว,แพ้ยา,อาการ(คัดกรอง),ความดัน,อุณหภูมิ,ชีพจร,น้ำหนัก,คำวินิจฉัย,การรักษา/ยา,สถานะ,โรงพยาบาลที่ส่งต่อ,สาเหตุการส่งต่อ,ความเร่งด่วน\n";
 
                 dataToExport.forEach(row => {
                     const clean = (text) => text ? `"${text.replace(/"/g, '""').replace(/\n/g, ' ')}"` : "";
@@ -435,13 +436,25 @@
                         row.time || "",
                         row.queue || "",
                         clean(row.name),
-                        `'${row.idCard}`,
-                        row.gender,
-                        row.age,
+                        `'${row.idCard || ""}`, // Add quote to prevent scientific notation in Excel
+                        row.dob || "",
+                        row.age || "",
+                        row.gender || "",
+                        `'${row.phone || ""}`,
+                        clean(row.address),
+                        clean(row.underlyingDisease),
+                        clean(row.allergies),
                         clean(row.screeningData?.symptom),
+                        clean(row.screeningData?.bp),
+                        clean(row.screeningData?.temp),
+                        clean(row.screeningData?.pulse),
+                        clean(row.screeningData?.weight),
                         clean(row.diagnosis),
                         clean(row.treatment),
-                        row.status
+                        row.status || "",
+                        clean(row.referralData?.hospital),
+                        clean(row.referralData?.reason),
+                        clean(row.referralData?.urgency)
                     ];
                     csvContent += rowData.join(",") + "\n";
                 });
@@ -633,4 +646,5 @@
     </script>
 </body>
 </html>
+
 
