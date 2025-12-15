@@ -355,9 +355,13 @@
             const handleSendToQueue = async () => {
                 if(!newPatient.name) return alert("กรุณากรอกชื่อ");
                 await handleSaveProfile();
-                const nextQueue = `A${String(patients.length+1).padStart(3,'0')}`;
-                // Save current date
+                
+                // Get today's date to reset queue
                 const today = new Date().toISOString().split('T')[0];
+                // Filter patients for today only to count the queue
+                const todayCount = patients.filter(p => p.date === today).length;
+                const nextQueue = `A${String(todayCount + 1).padStart(3,'0')}`;
+
                 await dbQueue().add({ 
                     ...newPatient, 
                     status: 'screening', 
@@ -666,5 +670,3 @@
     </script>
 </body>
 </html>
-
-
