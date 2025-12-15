@@ -33,13 +33,14 @@
         
         /* Print Styles */
         @media print {
+            @page { margin: 0; size: auto; } /* Reset page margins for label printers */
             body * { visibility: hidden; }
             
             /* Referral Letter Configuration */
             #print-section, #print-section * { visibility: visible; }
             #print-section { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
 
-            /* Drug Labels Configuration (Fixed) */
+            /* Drug Labels Configuration (Zebra/Label Printer Friendly) */
             #printable-labels, #printable-labels * { visibility: visible; }
             #printable-labels { 
                 visibility: visible !important;
@@ -48,13 +49,19 @@
                 top: 0; 
                 width: 100%; 
                 background: white; 
-                padding: 0;
+                padding: 2px; /* Small padding for sticker edge */
                 margin: 0;
-                display: grid !important;
-                grid-template-columns: 1fr 1fr; /* 2 columns for stickers */
-                gap: 10px;
+                display: block !important; /* Stack vertically for rolls */
             }
-            #printable-labels .border { border: 1px solid #000; } /* Ensure borders are visible */
+            #printable-labels .border { 
+                border: 2px solid #000; 
+                page-break-after: always; /* Force cut/next label for Zebra */
+                page-break-inside: avoid;
+                margin-bottom: 0; 
+                width: 100%;
+                box-sizing: border-box;
+                display: block;
+            }
             
             .no-print, .no-print * { display: none !important; }
         }
@@ -566,6 +573,7 @@
                     timing: m.timing
                 });
                 setEditingDrugCode(m.code);
+                setShowAddDrugModal(true); // Open modal when editing
             };
 
             const screeningCount = patients.filter(p => p.status === 'screening').length;
