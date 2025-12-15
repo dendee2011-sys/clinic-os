@@ -187,53 +187,50 @@
         ];
 
         const INITIAL_DIAGNOSIS_DB = [
-            // --- ระบบทางเดินหายใจ (Respiratory) ---
-            { code: "J00", name: "J00 - Acute nasopharyngitis (Common cold) - โรคหวัด" },
-            { code: "J01", name: "J01 - Acute sinusitis - ไซนัสอักเสบเฉียบพลัน" },
-            { code: "J02", name: "J02 - Acute pharyngitis - คออักเสบเฉียบพลัน" },
-            { code: "J03", name: "J03 - Acute tonsillitis - ต่อมทอนซิลอักเสบ" },
-            { code: "J06", name: "J06 - Acute URI - การติดเชื้อทางเดินหายใจส่วนบน" },
-            { code: "J20", name: "J20 - Acute bronchitis - หลอดลมอักเสบเฉียบพลัน" },
-            { code: "J30", name: "J30 - Allergic rhinitis - ภูมิแพ้จมูก" },
-            { code: "J45", name: "J45 - Asthma - โรคหอบหืด" },
-
-            // --- ระบบทางเดินอาหาร (Digestive) ---
-            { code: "A09", name: "A09 - Gastroenteritis/Diarrhea - ท้องร่วง/ลำไส้อักเสบ" },
-            { code: "K21", name: "K21 - GERD - กรดไหลย้อน" },
-            { code: "K29", name: "K29 - Gastritis - โรคกระเพาะอาหารอักเสบ" },
-            { code: "K30", name: "K30 - Dyspepsia - อาหารไม่ย่อย/ปวดท้องกระเพาะ" },
-            { code: "K59.0", name: "K59.0 - Constipation - ท้องผูก" },
-
-            // --- ระบบไหลเวียนโลหิต & NCDs (Circulatory & Endocrine) ---
-            { code: "I10", name: "I10 - Hypertension - ความดันโลหิตสูง" },
-            { code: "E11", name: "E11 - Type 2 Diabetes - เบาหวานชนิดที่ 2" },
-            { code: "E78", name: "E78 - Dyslipidemia - ไขมันในเลือดสูง" },
-
-            // --- ระบบกระดูกและกล้ามเนื้อ (Musculoskeletal) ---
-            { code: "M54.5", name: "M54.5 - Low back pain - ปวดหลังส่วนล่าง" },
-            { code: "M54.2", name: "M54.2 - Neck pain - ปวดคอ" },
-            { code: "M79.1", name: "M79.1 - Myalgia - ปวดกล้ามเนื้อ" },
-            { code: "M17", name: "M17 - Osteoarthritis of knee - ข้อเข่าเสื่อม" },
-            { code: "M65", name: "M65 - Synovitis/Tenosynovitis - ปลอกหุ้มเอ็นอักเสบ" },
-
-            // --- ระบบผิวหนัง (Skin) ---
-            { code: "L02", name: "L02 - Abscess/Furuncle - ฝี/หนอง" },
-            { code: "L03", name: "L03 - Cellulitis - เนื้อเยื่ออักเสบ" },
-            { code: "L20", name: "L20 - Atopic dermatitis - ผื่นภูมิแพ้ผิวหนัง" },
-            { code: "L30", name: "L30 - Other dermatitis - ผิวหนังอักเสบอื่นๆ" },
-            { code: "L50", name: "L50 - Urticaria - ลมพิษ" },
-            { code: "B35", name: "B35 - Dermatophytosis - กลาก/เกลื้อน/เชื้อรา" },
-
-            // --- อาการทั่วไป (General Symptoms) ---
-            { code: "R50", name: "R50 - Fever - ไข้ไม่ระบุสาเหตุ" },
-            { code: "R51", name: "R51 - Headache - ปวดศีรษะ" },
-            { code: "R42", name: "R42 - Dizziness/Vertigo - เวียนศีรษะ/บ้านหมุน" },
-            { code: "R10", name: "R10 - Abdominal pain - ปวดท้อง" },
-            { code: "R05", name: "R05 - Cough - ไอ" },
-
-            // --- อื่นๆ (Others) ---
-            { code: "Z00", name: "Z00 - General Checkup - ตรวจร่างกายทั่วไป" },
-            { code: "T14", name: "T14 - Injury of unspecified body region - บาดเจ็บไม่ระบุตำแหน่ง" }
+            { code: "A09", name: "A09 - Gastroenteritis/Diarrhea (ท้องร่วง)" },
+            { code: "A90", name: "A90 - Dengue fever (ไข้เลือดออก)" },
+            { code: "B00", name: "B00 - Herpes simplex (เริม)" },
+            { code: "B02", name: "B02 - Zoster (งูสวัด)" },
+            { code: "B35", name: "B35 - Dermatophytosis (กลาก/เกลื้อน)" },
+            { code: "E11", name: "E11 - Type 2 Diabetes (เบาหวาน)" },
+            { code: "E78", name: "E78 - Dyslipidemia (ไขมันในเลือดสูง)" },
+            { code: "H10", name: "H10 - Conjunctivitis (ตาแดง)" },
+            { code: "I10", name: "I10 - Hypertension (ความดันโลหิตสูง)" },
+            { code: "J00", name: "J00 - Common cold (ไข้หวัด)" },
+            { code: "J01", name: "J01 - Acute sinusitis (ไซนัสอักเสบ)" },
+            { code: "J02", name: "J02 - Acute pharyngitis (คออักเสบ)" },
+            { code: "J03", name: "J03 - Acute tonsillitis (ทอนซิลอักเสบ)" },
+            { code: "J06", name: "J06 - Acute URI (ติดเชื้อทางเดินหายใจส่วนบน)" },
+            { code: "J18", name: "J18 - Pneumonia (ปอดอักเสบ)" },
+            { code: "J20", name: "J20 - Acute bronchitis (หลอดลมอักเสบ)" },
+            { code: "J30", name: "J30 - Allergic rhinitis (ภูมิแพ้จมูก)" },
+            { code: "J45", name: "J45 - Asthma (หอบหืด)" },
+            { code: "K21", name: "K21 - GERD (กรดไหลย้อน)" },
+            { code: "K29", name: "K29 - Gastritis (โรคกระเพาะ)" },
+            { code: "K30", name: "K30 - Dyspepsia (อาหารไม่ย่อย)" },
+            { code: "K59.0", name: "K59.0 - Constipation (ท้องผูก)" },
+            { code: "L02", name: "L02 - Abscess/Furuncle (ฝี)" },
+            { code: "L03", name: "L03 - Cellulitis (เนื้อเยื่ออักเสบ)" },
+            { code: "L20", name: "L20 - Atopic dermatitis (ผื่นภูมิแพ้)" },
+            { code: "L30", name: "L30 - Contact dermatitis (ผื่นแพ้สัมผัส)" },
+            { code: "L50", name: "L50 - Urticaria (ลมพิษ)" },
+            { code: "M17", name: "M17 - Osteoarthritis of knee (ข้อเข่าเสื่อม)" },
+            { code: "M54.2", name: "M54.2 - Neck pain (ปวดคอ)" },
+            { code: "M54.5", name: "M54.5 - Low back pain (ปวดหลัง)" },
+            { code: "M65", name: "M65 - Synovitis/Tenosynovitis (เอ็นอักเสบ)" },
+            { code: "M79.1", name: "M79.1 - Myalgia (ปวดกล้ามเนื้อ)" },
+            { code: "N30", name: "N30 - Cystitis (กระเพาะปัสสาวะอักเสบ)" },
+            { code: "N39.0", name: "N39.0 - Urinary tract infection (ติดเชื้อทางเดินปัสสาวะ)" },
+            { code: "R05", name: "R05 - Cough (ไอ)" },
+            { code: "R10", name: "R10 - Abdominal pain (ปวดท้อง)" },
+            { code: "R42", name: "R42 - Dizziness/Vertigo (เวียนหัว)" },
+            { code: "R50", name: "R50 - Fever (ไข้)" },
+            { code: "R51", name: "R51 - Headache (ปวดหัว)" },
+            { code: "S00", name: "S00 - Superficial injury of head (บาดแผลที่ศีรษะ)" },
+            { code: "S60", name: "S60 - Superficial injury of wrist/hand (บาดแผลที่มือ)" },
+            { code: "T14", name: "T14 - Injury, unspecified (บาดเจ็บทั่วไป)" },
+            { code: "W54", name: "W54 - Bitten or struck by dog (สุนัขกัด)" },
+            { code: "Z00", name: "Z00 - General Checkup (ตรวจร่างกายทั่วไป)" }
         ];
 
         const todayDate = new Date().toISOString().split('T')[0];
