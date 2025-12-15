@@ -31,95 +31,84 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
-        /* Print Styles */
+        /* Print Styles - Zebra & Label Printer Optimized */
         @media print {
-            @page { margin: 0; size: auto; } /* Reset page margins */
+            @page { 
+                margin: 0; 
+                size: auto; 
+            }
             
-            /* Hide scrollbars during print */
-            ::-webkit-scrollbar { display: none; }
+            /* ซ่อนทุกอย่างในหน้าเว็บ */
+            body * { 
+                visibility: hidden; 
+            }
 
-            /* Ensure body allows content to flow */
-            body, html { 
-                height: auto !important; 
+            /* รีเซ็ตค่า body เพื่อให้รองรับการพิมพ์ยาวๆ */
+            body, html {
+                height: auto !important;
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: visible !important;
-                background: white !important;
+                background-color: white !important;
             }
-            
-            /* Hide non-print elements */
-            body > * { display: none !important; }
 
-            /* Show Referral Letter if active */
-            #print-section { 
+            /* --- ส่วนจัดการพิมพ์ฉลากยา --- */
+            
+            /* แสดงเฉพาะคอนเทนเนอร์รายการยา */
+            #printable-labels, #printable-labels * { 
+                visibility: visible !important; 
+            }
+
+            /* ดึงรายการยาออกมาวางที่ตำแหน่ง 0,0 ของกระดาษ */
+            #printable-labels {
+                position: absolute !important;
+                left: 0 !important;
+                top: 0 !important;
+                width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
                 display: block !important;
+            }
+
+            /* จัดรูปแบบสติ๊กเกอร์แต่ละดวง */
+            .printable-label-item {
+                visibility: visible !important;
+                display: block !important;
+                
+                /* ขนาดและตำแหน่งบนสติ๊กเกอร์ */
+                width: 94% !important;      /* ลดจาก 100% กันตกขอบขวา */
+                margin: 0 auto !important;   /* จัดกึ่งกลางซ้ายขวา */
+                margin-top: 5px !important;  /* เว้นขอบบนเล็กน้อย กันตกขอบบน */
+                
+                /* เส้นขอบและความหนา */
+                border: 2px solid #000 !important;
+                box-sizing: border-box !important;
+                padding: 5px !important;
+                background-color: white !important;
+                
+                /* บังคับตัดหน้า (สำคัญมากสำหรับ Zebra) */
+                page-break-after: always !important;
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                
+                /* สีตัวอักษรดำสนิท */
+                color: #000 !important;
+            }
+
+            /* ซ่อน elements ที่ไม่ต้องการพิมพ์ */
+            .no-print { display: none !important; }
+            input[type="checkbox"] { display: none !important; }
+
+            /* --- ส่วนใบส่งตัว (Referral) --- */
+            #print-section, #print-section * { 
+                visibility: visible !important; 
+            }
+            #print-section {
                 position: absolute;
                 left: 0;
                 top: 0;
                 width: 100%;
-            }
-            #print-section * { visibility: visible !important; }
-
-            /* --- Drug Label Specifics for Zebra --- */
-            
-            /* Bring the label modal container back into flow and visible */
-            #label-modal-overlay {
-                display: block !important;
-                position: absolute !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100% !important;
-                height: auto !important;
-                background: white !important;
-                z-index: 9999 !important;
-                padding: 0 !important;
-                margin: 0 !important;
-            }
-
-            /* Container for the labels */
-            #printable-labels { 
-                display: block !important; 
-                visibility: visible !important;
-                width: 100% !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
-
-            /* Individual Sticker Style */
-            #printable-labels .border { 
-                display: block !important;
-                visibility: visible !important;
-                
-                /* Layout */
-                width: 96% !important; /* เต็มความกว้าง แต่เผื่อขอบนิดหน่อย */
-                margin: 0 auto !important; /* จัดกึ่งกลางซ้าย-ขวา */
-                margin-top: 2mm !important; /* เว้นขอบบนแก้ปัญหาปริ้นตกขอบ */
-                margin-bottom: 0 !important; 
-
-                /* Style */
-                border: 2px solid #000 !important; 
-                border-radius: 0 !important; /* สติ๊กเกอร์เหลี่ยม ไม่เอามุมมน */
-                box-sizing: border-box !important;
-                padding: 5px !important;
-                background: white !important;
-                
-                /* Page Break Logic - หัวใจสำคัญของการตัดหน้า */
-                page-break-after: always !important; 
-                break-after: page !important;
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-                
-                float: none !important;
-            }
-
-            /* ป้องกันหน้าเปล่าสุดท้าย (ถ้าจำเป็น แต่ Zebra มักจะชอบ page-break-after: always มากกว่า) */
-            /* #printable-labels .border:last-child { page-break-after: auto !important; } */
-            
-            /* Force text color */
-            #printable-labels * { 
-                color: #000 !important; 
-                text-shadow: none !important;
             }
         }
     </style>
@@ -787,7 +776,7 @@
                         const isSelected = selectedLabelIndices.includes(i);
                         return (
                             <div key={i} 
-                                className={`border p-4 rounded text-center shadow-sm break-inside-avoid relative cursor-pointer ${isSelected ? '' : 'opacity-40 no-print'}`} 
+                                className={`printable-label-item border p-4 rounded text-center shadow-sm break-inside-avoid relative cursor-pointer ${isSelected ? '' : 'opacity-40 no-print'}`} 
                                 style={{
                                     fontSize: `${labelFontSize}px`,
                                     pageBreakAfter: (isSelected && i !== lastSelectedIndex) ? 'always' : 'auto',
