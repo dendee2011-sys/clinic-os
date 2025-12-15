@@ -38,7 +38,14 @@
             
             /* Referral Letter Configuration */
             #print-section, #print-section * { visibility: visible; }
-            #print-section { position: absolute; left: 0; top: 0; width: 100%; display: block !important; }
+            #print-section { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                display: block !important;
+                overflow: visible !important;
+            }
 
             /* Drug Labels Configuration (Zebra/Label Printer Friendly) */
             #printable-labels, #printable-labels * { visibility: visible; }
@@ -48,19 +55,23 @@
                 left: 0; 
                 top: 0; 
                 width: 100%; 
+                height: auto !important; /* FORCE FULL HEIGHT */
+                overflow: visible !important; /* PREVENT CLIPPING */
                 background: white; 
-                padding: 2px; /* Small padding for sticker edge */
+                padding: 0;
                 margin: 0;
                 display: block !important; /* Stack vertically for rolls */
             }
             #printable-labels .border { 
                 border: 2px solid #000; 
                 page-break-after: always; /* Force cut/next label for Zebra */
+                break-after: page; /* Newer syntax support */
                 page-break-inside: avoid;
                 margin-bottom: 0; 
                 width: 100%;
                 box-sizing: border-box;
                 display: block;
+                float: none !important;
             }
             
             .no-print, .no-print * { display: none !important; }
@@ -519,9 +530,43 @@
                 setExamData(prev=>({...prev, diagnosis: prev.diagnosis?prev.diagnosis+'\n'+str:str}));
                 setShowDiagModal(false); setDiagSearch('');
             };
+            
+            // New Robust Parsing Logic for Label Printing
+            const parsePrescription = (text) => {
+                if (!text) return [];
+                const lines = text.split('\n');
+                const items = [];
+                let currentItem = null;
+                
+                lines.forEach(line => {
+                    const trimmedLine = line.trim();
+                    if (!trimmedLine) return;
+
+                    // Check if line starts with dash (new item)
+                    if (trimmedLine.startsWith('-')) {
+                        if (currentItem) items.push(currentItem);
+                        // Remove dash and trim
+                        let name = trimmedLine.substring(1).trim();
+                        currentItem = { name: name, detail: '' };
+                    } else if (currentItem) {
+                        // Append to current item details
+                        currentItem.detail += (currentItem.detail ? '\n' : '') + trimmedLine;
+                    }
+                });
+                
+                if (currentItem) items.push(currentItem);
+                return items;
+            };
+
             const handlePrintPreview = (p) => {
-                const rx = pharmacyRx || p.treatment; if(!rx) return alert('ไม่มียา');
-                const items = rx.split('\n- ').map((t,i) => { const txt = i===0&&t.startsWith('- ')?t.substring(2):t; const pts = txt.split('\n  '); return {name: pts[0], detail: pts[1]||''}; }).filter(i=>i.name);
+                const rx = pharmacyRx || p.treatment; 
+                if(!rx) return alert('ไม่มียา');
+                
+                // Use new robust parsing
+                const items = parsePrescription(rx);
+                
+                if (items.length === 0) return alert('ไม่พบรายการยาที่ถูกต้อง (ต้องขึ้นต้นด้วย - )');
+
                 setLabelsToPrint({patient:p, items}); 
                 setSelectedLabelIndices(items.map((_, i) => i));
                 setShowLabelModal(true);
