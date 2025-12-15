@@ -95,9 +95,17 @@
                 padding: 5px !important;
                 
                 /* Page breaks are handled by React inline styles to avoid empty last page */
+                /* Remove !important here to allow React inline styles to control the break */
+                page-break-after: always; 
+                break-after: page;
+                
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                
                 display: block !important;
                 float: none !important;
                 position: static !important;
+                overflow: hidden !important;
             }
             
             /* Hide items not selected */
@@ -257,7 +265,7 @@
             { code: "L02", name: "L02 - Abscess/Furuncle (ฝี)" },
             { code: "L03", name: "L03 - Cellulitis (เนื้อเยื่ออักเสบ)" },
             { code: "L20", name: "L20 - Atopic dermatitis (ผื่นภูมิแพ้ผิวหนัง)" },
-            { code: "L30", name: "L30 - Other dermatitis (ผิวหนังอักเสบอื่นๆ/ผื่นแพ้สัมผัส)" },
+            { code: "L30", name: "L30 - Contact dermatitis (ผื่นแพ้สัมผัส)" },
             { code: "L50", name: "L50 - Urticaria (ลมพิษ)" },
             { code: "M17", name: "M17 - Osteoarthritis of knee (ข้อเข่าเสื่อม)" },
             { code: "M54.2", name: "M54.2 - Neck pain (ปวดคอ)" },
@@ -271,11 +279,10 @@
             { code: "R42", name: "R42 - Dizziness/Vertigo (เวียนหัว)" },
             { code: "R50", name: "R50 - Fever (ไข้)" },
             { code: "R51", name: "R51 - Headache (ปวดหัว)" },
-            { code: "S00", name: "S00 - Superficial injury of head (บาดแผลที่ศีรษะ)" },
-            { code: "S60", name: "S60 - Superficial injury of wrist/hand (บาดแผลที่มือ)" },
-            { code: "T14", name: "T14 - Injury, unspecified (บาดเจ็บทั่วไป)" },
-            { code: "W54", name: "W54 - Bitten or struck by dog (สุนัขกัด)" },
-            { code: "Z00", name: "Z00 - General Checkup (ตรวจร่างกายทั่วไป)" }
+            { code: "S00", name: "S00 - Superficial injury of head (บาดแผลตื้นที่ศีรษะ)" },
+            { code: "S60", name: "S60 - Superficial injury of wrist and hand (บาดแผลตื้นที่มือ)" },
+            { code: "T14", name: "T14 - Injury of unspecified body region (บาดเจ็บทั่วไป)" },
+            { code: "Z00", name: "Z00 - General examination (ตรวจร่างกายทั่วไป)" }
         ];
 
         const todayDate = new Date().toISOString().split('T')[0];
