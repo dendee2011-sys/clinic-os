@@ -34,6 +34,15 @@
         /* Print Styles */
         @media print {
             @page { margin: 0; size: auto; } /* Reset page margins for label printers */
+            body, html { 
+                height: 100%; 
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                overflow: visible !important;
+            }
+            
+            /* Hide everything by default */
             body * { visibility: hidden; }
             
             /* Referral Letter Configuration */
@@ -48,32 +57,43 @@
             }
 
             /* Drug Labels Configuration (Zebra/Label Printer Friendly) */
-            #printable-labels, #printable-labels * { visibility: visible; }
             #printable-labels { 
                 visibility: visible !important;
                 position: absolute; 
                 left: 0; 
                 top: 0; 
                 width: 100%; 
-                height: auto !important; /* FORCE FULL HEIGHT */
-                overflow: visible !important; /* PREVENT CLIPPING */
+                height: auto !important;
+                overflow: visible !important;
                 background: white; 
-                padding: 0;
-                margin: 0;
+                padding: 0 !important;
+                margin: 0 !important;
                 display: block !important; /* Stack vertically for rolls */
             }
+            
+            #printable-labels * { visibility: visible; }
+
+            /* Individual Label Style */
             #printable-labels .border { 
-                border: 2px solid #000; 
-                page-break-after: always; /* Force cut/next label for Zebra */
-                break-after: page; /* Newer syntax support */
-                page-break-inside: avoid;
-                margin-bottom: 0; 
-                width: 100%;
-                box-sizing: border-box;
-                display: block;
+                visibility: visible !important;
+                width: 98% !important; /* Fit width with slight margin */
+                margin: 0 auto !important; /* Center */
+                border: 2px solid #000 !important; 
+                box-sizing: border-box !important;
+                padding: 5px !important;
+                
+                /* FORCE PAGE BREAK FOR EACH LABEL */
+                page-break-after: always !important; 
+                break-after: page !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+                
+                display: block !important;
                 float: none !important;
+                position: static !important;
             }
             
+            /* Hide items not selected */
             .no-print, .no-print * { display: none !important; }
         }
     </style>
@@ -671,7 +691,38 @@
             const referralCount = patients.filter(p => p.status === 'referred').length;
             const getDiseaseStats = () => {
                 const stats = {};
-                filteredPatients.forEach(p => { if (!p.diagnosis) return; const code = p.diagnosis.split(' ')[0].toUpperCase().charAt(0); let group = 'อื่นๆ'; if (code === 'J') group = 'ทางเดินหายใจ'; else if (['E', 'I'].includes(code)) group = 'NCDs'; stats[group] = (stats[group] || 0) + 1; });
+                filteredPatients.forEach(p => { 
+                    if (!p.diagnosis) return;
+                    const lines = p.diagnosis.split('\n');
+                    lines.forEach(line => {
+                        const cleanLine = line.trim();
+                        if(!cleanLine) return;
+                        const parts = cleanLine.split(' ');
+                        const rawCode = parts[0].toUpperCase();
+                        const letter = rawCode.charAt(0);
+                        
+                        let group = 'อื่นๆ (Others)';
+                        if (['A', 'B'].includes(letter)) group = 'โรคติดเชื้อ (Infectious)';
+                        else if (['C', 'D'].includes(letter)) group = 'เนื้องอก/มะเร็ง (Neoplasms)';
+                        else if (letter === 'E') group = 'ต่อมไร้ท่อ/NCDs (Endocrine)';
+                        else if (letter === 'F') group = 'สุขภาพจิต (Mental)';
+                        else if (letter === 'G') group = 'ระบบประสาท (Nervous)';
+                        else if (letter === 'H') group = 'ตาและหู (Eye/Ear)';
+                        else if (letter === 'I') group = 'ไหลเวียนโลหิต (Circulatory)';
+                        else if (letter === 'J') group = 'ทางเดินหายใจ (Respiratory)';
+                        else if (letter === 'K') group = 'ทางเดินอาหาร (Digestive)';
+                        else if (letter === 'L') group = 'ผิวหนัง (Skin)';
+                        else if (letter === 'M') group = 'กระดูก/กล้ามเนื้อ (Musculoskeletal)';
+                        else if (letter === 'N') group = 'ทางเดินปัสสาวะ (Genitourinary)';
+                        else if (['O', 'P', 'Q'].includes(letter)) group = 'แม่และเด็ก/พันธุกรรม';
+                        else if (letter === 'R') group = 'อาการ (Symptoms)';
+                        else if (['S', 'T'].includes(letter)) group = 'บาดเจ็บ (Injury)';
+                        else if (['V', 'W', 'X', 'Y'].includes(letter)) group = 'สาเหตุภายนอก (External Causes)';
+                        else if (letter === 'Z') group = 'ตรวจสุขภาพ (General)';
+    
+                        stats[group] = (stats[group] || 0) + 1; 
+                    });
+                });
                 return Object.entries(stats).sort((a,b) => b[1] - a[1]); 
             };
 
@@ -891,3 +942,5 @@
     </script>
 </body>
 </html>
+
+
