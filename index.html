@@ -31,85 +31,84 @@
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
         
-        /* Print Styles - Zebra & Label Printer Optimized */
+        /* Print Styles */
         @media print {
-            @page { 
-                margin: 0; 
-                size: auto; 
-            }
+            @page { margin: 0; size: auto; } /* Reset page margins for label printers */
             
-            /* ซ่อนทุกอย่างในหน้าเว็บ */
-            body * { 
-                visibility: hidden; 
-            }
-
-            /* รีเซ็ตค่า body เพื่อให้รองรับการพิมพ์ยาวๆ */
-            body, html {
-                height: auto !important;
+            /* FIX: Allow body to grow indefinitely for printing multiple labels */
+            body, html { 
+                height: auto !important; 
                 width: 100% !important;
                 margin: 0 !important;
                 padding: 0 !important;
                 overflow: visible !important;
                 background-color: white !important;
             }
-
-            /* --- ส่วนจัดการพิมพ์ฉลากยา --- */
             
-            /* แสดงเฉพาะคอนเทนเนอร์รายการยา */
-            #printable-labels, #printable-labels * { 
-                visibility: visible !important; 
+            /* Hide everything by default */
+            body * { visibility: hidden; }
+            
+            /* Referral Letter Configuration */
+            #print-section, #print-section * { visibility: visible; }
+            #print-section { 
+                position: absolute; 
+                left: 0; 
+                top: 0; 
+                width: 100%; 
+                display: block !important;
+                overflow: visible !important;
             }
 
-            /* ดึงรายการยาออกมาวางที่ตำแหน่ง 0,0 ของกระดาษ */
-            #printable-labels {
+            /* Drug Labels Configuration (Zebra/Label Printer Friendly) */
+            /* FIX: Ensure modal content is static and visible to flow naturally */
+            #label-modal-overlay, #label-modal-content {
+                visibility: visible !important;
                 position: absolute !important;
                 left: 0 !important;
                 top: 0 !important;
                 width: 100% !important;
-                margin: 0 !important;
+                height: auto !important;
+                overflow: visible !important;
+                background: white !important;
                 padding: 0 !important;
+                margin: 0 !important;
                 display: block !important;
+                border: none !important;
+                box-shadow: none !important;
             }
 
-            /* จัดรูปแบบสติ๊กเกอร์แต่ละดวง */
-            .printable-label-item {
+            #printable-labels { 
                 visibility: visible !important;
-                display: block !important;
-                
-                /* ขนาดและตำแหน่งบนสติ๊กเกอร์ */
-                width: 94% !important;      /* ลดจาก 100% กันตกขอบขวา */
-                margin: 0 auto !important;   /* จัดกึ่งกลางซ้ายขวา */
-                margin-top: 5px !important;  /* เว้นขอบบนเล็กน้อย กันตกขอบบน */
-                
-                /* เส้นขอบและความหนา */
-                border: 2px solid #000 !important;
+                position: static !important; 
+                width: 100% !important; 
+                height: auto !important;
+                overflow: visible !important;
+                display: block !important; /* Stack vertically for rolls */
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            
+            #printable-labels * { visibility: visible; }
+
+            /* Individual Label Style */
+            #printable-labels .border { 
+                visibility: visible !important;
+                width: 100% !important; /* Full width of the label paper */
+                margin: 0 !important; /* Remove margins to prevent extra spacing */
+                border: 2px solid #000 !important; 
                 box-sizing: border-box !important;
                 padding: 5px !important;
-                background-color: white !important;
                 
-                /* บังคับตัดหน้า (สำคัญมากสำหรับ Zebra) */
-                page-break-after: always !important;
-                break-after: page !important;
+                /* Page breaks handled by React inline styles */
+                display: block !important;
+                float: none !important;
+                position: relative !important;
                 page-break-inside: avoid !important;
-                
-                /* สีตัวอักษรดำสนิท */
-                color: #000 !important;
+                break-inside: avoid !important;
             }
-
-            /* ซ่อน elements ที่ไม่ต้องการพิมพ์ */
-            .no-print { display: none !important; }
-            input[type="checkbox"] { display: none !important; }
-
-            /* --- ส่วนใบส่งตัว (Referral) --- */
-            #print-section, #print-section * { 
-                visibility: visible !important; 
-            }
-            #print-section {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
-            }
+            
+            /* Hide items not selected */
+            .no-print, .no-print * { display: none !important; }
         }
     </style>
 </head>
@@ -240,52 +239,73 @@
         ];
 
         const INITIAL_DIAGNOSIS_DB = [
+            // --- ระบบทางเดินอาหาร (Digestive System) ---
             { code: "A09", name: "A09 - Gastroenteritis/Diarrhea (ท้องร่วง/ลำไส้อักเสบ)" },
-            { code: "A90", name: "A90 - Dengue fever (ไข้เลือดออก)" },
-            { code: "B00", name: "B00 - Herpes simplex (เริม)" },
-            { code: "B02", name: "B02 - Zoster (งูสวัด)" },
-            { code: "B35", name: "B35 - Dermatophytosis (กลาก/เกลื้อน)" },
-            { code: "E11", name: "E11 - Type 2 Diabetes (เบาหวาน)" },
-            { code: "E78", name: "E78 - Dyslipidemia (ไขมันในเลือดสูง)" },
-            { code: "H10", name: "H10 - Conjunctivitis (ตาแดง)" },
-            { code: "I10", name: "I10 - Hypertension (ความดันโลหิตสูง)" },
-            { code: "J00", name: "J00 - Common cold (ไข้หวัด)" },
+            { code: "K21", name: "K21 - Gastro-esophageal reflux disease (GERD) (กรดไหลย้อน)" },
+            { code: "K29", name: "K29 - Gastritis and duodenitis (โรคกระเพาะอาหารอักเสบ)" },
+            { code: "K30", name: "K30 - Functional dyspepsia (อาหารไม่ย่อย/ปวดท้องกระเพาะ)" },
+            { code: "K52", name: "K52 - Other noninfective gastroenteritis and colitis (ลำไส้อักเสบ)" },
+            { code: "K59.0", name: "K59.0 - Constipation (ท้องผูก)" },
+            { code: "R10", name: "R10 - Abdominal and pelvic pain (ปวดท้อง)" },
+            { code: "R11", name: "R11 - Nausea and vomiting (คลื่นไส้ อาเจียน)" },
+
+            // --- ระบบทางเดินหายใจ (Respiratory System) ---
+            { code: "J00", name: "J00 - Acute nasopharyngitis [common cold] (ไข้หวัด)" },
             { code: "J01", name: "J01 - Acute sinusitis (ไซนัสอักเสบ)" },
             { code: "J02", name: "J02 - Acute pharyngitis (คออักเสบ)" },
             { code: "J03", name: "J03 - Acute tonsillitis (ทอนซิลอักเสบ)" },
-            { code: "J06", name: "J06 - Acute URI (ติดเชื้อทางเดินหายใจส่วนบน)" },
-            { code: "J18", name: "J18 - Pneumonia (ปอดอักเสบ)" },
-            { code: "J20", name: "J20 - Acute bronchitis (หลอดลมอักเสบ)" },
-            { code: "J30", name: "J30 - Allergic rhinitis (ภูมิแพ้จมูก)" },
+            { code: "J06", name: "J06 - Acute upper respiratory infection (ติดเชื้อทางเดินหายใจส่วนบน)" },
+            { code: "J18", name: "J18 - Pneumonia, organism unspecified (ปอดอักเสบ)" },
+            { code: "J20", name: "J20 - Acute bronchitis (หลอดลมอักเสบเฉียบพลัน)" },
+            { code: "J30", name: "J30 - Vasomotor and allergic rhinitis (ภูมิแพ้จมูก)" },
             { code: "J45", name: "J45 - Asthma (หอบหืด)" },
-            { code: "K21", name: "K21 - GERD (กรดไหลย้อน)" },
-            { code: "K29", name: "K29 - Gastritis (โรคกระเพาะ)" },
-            { code: "K30", name: "K30 - Dyspepsia (อาหารไม่ย่อย)" },
-            { code: "K59.0", name: "K59.0 - Constipation (ท้องผูก)" },
-            { code: "L02", name: "L02 - Abscess/Furuncle (ฝี)" },
+            { code: "R05", name: "R05 - Cough (ไอ)" },
+
+            // --- ระบบไหลเวียนโลหิตและโรคเรื้อรัง (NCDs) ---
+            { code: "I10", name: "I10 - Essential (primary) hypertension (ความดันโลหิตสูง)" },
+            { code: "E11", name: "E11 - Type 2 diabetes mellitus (เบาหวานชนิดที่ 2)" },
+            { code: "E78", name: "E78 - Disorders of lipoprotein metabolism (ไขมันในเลือดสูง)" },
+            
+            // --- ระบบกระดูกและกล้ามเนื้อ (Musculoskeletal) ---
+            { code: "M54.5", name: "M54.5 - Low back pain (ปวดหลังส่วนล่าง)" },
+            { code: "M54.2", name: "M54.2 - Neck pain (ปวดคอ)" },
+            { code: "M79.1", name: "M79.1 - Myalgia (ปวดกล้ามเนื้อ)" },
+            { code: "M17", name: "M17 - Gonarthrosis [arthrosis of knee] (ข้อเข่าเสื่อม)" },
+            { code: "M65", name: "M65 - Synovitis and tenosynovitis (ปลอกหุ้มเอ็นอักเสบ/นิ้วล็อค)" },
+
+            // --- ระบบผิวหนัง (Skin) ---
+            { code: "L02", name: "L02 - Cutaneous abscess, furuncle and carbuncle (ฝี/หนอง)" },
             { code: "L03", name: "L03 - Cellulitis (เนื้อเยื่ออักเสบ)" },
             { code: "L20", name: "L20 - Atopic dermatitis (ผื่นภูมิแพ้ผิวหนัง)" },
-            { code: "L30", name: "L30 - Contact dermatitis (ผื่นแพ้สัมผัส)" },
+            { code: "L30", name: "L30 - Other dermatitis (ผิวหนังอักเสบอื่นๆ/ผื่นแพ้สัมผัส)" },
             { code: "L50", name: "L50 - Urticaria (ลมพิษ)" },
-            { code: "M17", name: "M17 - Osteoarthritis of knee (ข้อเข่าเสื่อม)" },
-            { code: "M54.2", name: "M54.2 - Neck pain (ปวดคอ)" },
-            { code: "M54.5", name: "M54.5 - Low back pain (ปวดหลัง)" },
-            { code: "M65", name: "M65 - Synovitis/Tenosynovitis (เอ็นอักเสบ)" },
-            { code: "M79.1", name: "M79.1 - Myalgia (ปวดกล้ามเนื้อ)" },
+            { code: "B00", name: "B00 - Herpes simplex infections (เริม)" },
+            { code: "B02", name: "B02 - Zoster [herpes zoster] (งูสวัด)" },
+            { code: "B35", name: "B35 - Dermatophytosis (กลาก/เกลื้อน)" },
+            { code: "W54", name: "W54 - Bitten or struck by dog (สุนัขกัด)" },
+
+            // --- อื่นๆ (General/Others) ---
+            { code: "H10", name: "H10 - Conjunctivitis (ตาแดง)" },
             { code: "N30", name: "N30 - Cystitis (กระเพาะปัสสาวะอักเสบ)" },
             { code: "N39.0", name: "N39.0 - Urinary tract infection (ติดเชื้อทางเดินปัสสาวะ)" },
-            { code: "R05", name: "R05 - Cough (ไอ)" },
-            { code: "R10", name: "R10 - Abdominal pain (ปวดท้อง)" },
-            { code: "R42", name: "R42 - Dizziness/Vertigo (เวียนหัว)" },
-            { code: "R50", name: "R50 - Fever (ไข้)" },
-            { code: "R51", name: "R51 - Headache (ปวดหัว)" },
+            { code: "R42", name: "R42 - Dizziness and giddiness (เวียนศีรษะ/บ้านหมุน)" },
+            { code: "R50", name: "R50 - Fever of other and unknown origin (ไข้)" },
+            { code: "R51", name: "R51 - Headache (ปวดศีรษะ)" },
             { code: "S00", name: "S00 - Superficial injury of head (บาดแผลตื้นที่ศีรษะ)" },
             { code: "S60", name: "S60 - Superficial injury of wrist and hand (บาดแผลตื้นที่มือ)" },
             { code: "T14", name: "T14 - Injury of unspecified body region (บาดเจ็บทั่วไป)" },
             { code: "Z00", name: "Z00 - General examination (ตรวจร่างกายทั่วไป)" }
         ];
 
-        const todayDate = new Date().toISOString().split('T')[0];
+        // --- Helper for Local Date ---
+        const getLocalISODate = () => {
+            const d = new Date();
+            const z = d.getTimezoneOffset() * 60 * 1000;
+            const local = new Date(d - z);
+            return local.toISOString().split('T')[0];
+        };
+
+        const todayDate = getLocalISODate(); // Using local time
 
         const DEMO_PATIENTS = [
             { name: "ทดสอบ ระบบ", age: 30, gender: "ชาย", status: "waiting", queue: "A001", time: "08:00", date: todayDate, idCard: "1111111111111", phone: "0812345678", screeningData: { symptom: "ทดสอบระบบ", bp: "120/80", temp: "36.5", pulse: "80", weight: "60" } }
@@ -330,9 +350,9 @@
             const [loading, setLoading] = useState(true);
             const [activeTab, setActiveTab] = useState('dashboard');
             const [sidebarOpen, setSidebarOpen] = useState(false);
-            const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-            const [exportStart, setExportStart] = useState(new Date().toISOString().split('T')[0]);
-            const [exportEnd, setExportEnd] = useState(new Date().toISOString().split('T')[0]);
+            const [selectedDate, setSelectedDate] = useState(getLocalISODate()); // Use local date
+            const [exportStart, setExportStart] = useState(getLocalISODate());
+            const [exportEnd, setExportEnd] = useState(getLocalISODate());
             
             const [patients, setPatients] = useState([]);
             const [masterDB, setMasterDB] = useState([]);
@@ -424,8 +444,9 @@
 
             const getFilteredPatients = () => {
                 return patients.filter(p => {
-                    const pDate = p.date || new Date().toISOString().split('T')[0];
-                    return pDate === selectedDate;
+                    const pDate = p.date || (p.time ? getLocalISODate() : ''); // Fallback to local today
+                    const effectiveDate = pDate || getLocalISODate();
+                    return effectiveDate === selectedDate;
                 });
             };
 
@@ -463,8 +484,8 @@
                 if(!newPatient.name) return alert("กรุณากรอกชื่อ");
                 await handleSaveProfile();
                 
-                // Get today's date to reset queue
-                const today = new Date().toISOString().split('T')[0];
+                // Get today's date in local time
+                const today = getLocalISODate();
                 // Filter patients for today only to count the queue
                 const todayCount = patients.filter(p => p.date === today).length;
                 const nextQueue = `A${String(todayCount + 1).padStart(3,'0')}`;
@@ -776,7 +797,7 @@
                         const isSelected = selectedLabelIndices.includes(i);
                         return (
                             <div key={i} 
-                                className={`printable-label-item border p-4 rounded text-center shadow-sm break-inside-avoid relative cursor-pointer ${isSelected ? '' : 'opacity-40 no-print'}`} 
+                                className={`border p-4 rounded text-center shadow-sm break-inside-avoid relative cursor-pointer ${isSelected ? '' : 'opacity-40 no-print'}`} 
                                 style={{
                                     fontSize: `${labelFontSize}px`,
                                     pageBreakAfter: (isSelected && i !== lastSelectedIndex) ? 'always' : 'auto',
@@ -889,13 +910,13 @@
 
                             {activeTab === 'screening' && <div className="flex flex-col lg:flex-row gap-4 h-full"><div className="w-full lg:w-1/3 bg-white border rounded-xl overflow-hidden flex flex-col"><div className="p-3 bg-orange-100 font-bold text-orange-800">คิวรอคัดกรอง</div><div className="flex-1 overflow-auto">{patients.filter(p=>p.status==='screening').map(p=><div key={p.id} onClick={()=>handleSelectForScreening(p)} className="p-3 border-b hover:bg-orange-50 cursor-pointer flex justify-between relative group"><span>{p.queue} {p.name} ({p.age} ปี)</span><div className="hidden group-hover:flex gap-1 absolute right-2 top-2"><button onClick={e=>handleEditPatientClick(e,p)} className="bg-white p-1 rounded border"><Icons.Edit size={12}/></button><button onClick={e=>handleDeletePatient(e,p)} className="bg-white p-1 rounded border text-red-500"><Icons.Trash2 size={12}/></button></div></div>)}</div></div><div className="flex-1 bg-white border rounded-xl p-6">{selectedScreening ? <div className="space-y-4"><h3 className="font-bold text-xl">คัดกรอง: {selectedScreening.name} ({selectedScreening.age} ปี)</h3>{(selectedScreening.allergies)&&<div className="text-red-600 font-bold bg-red-50 p-2 rounded border border-red-200">แพ้: {selectedScreening.allergies}</div>}<textarea className="w-full border p-2 rounded" placeholder="อาการ..." value={screeningForm.symptom} onChange={e=>setScreeningForm({...screeningForm, symptom:e.target.value})}/><div className="grid grid-cols-4 gap-2"><InputGroup label="BP" value={screeningForm.bp} onChange={e=>{let v=e.target.value;if(v.length===3&&v.length>(screeningForm.bp||'').length&&!v.includes('/'))v+='/';setScreeningForm({...screeningForm,bp:v})}}/><InputGroup label="Temp" value={screeningForm.temp} onChange={e=>setScreeningForm({...screeningForm, temp:e.target.value})}/><InputGroup label="Pulse" value={screeningForm.pulse} onChange={e=>setScreeningForm({...screeningForm, pulse:e.target.value})}/><InputGroup label="Weight" value={screeningForm.weight} onChange={e=>setScreeningForm({...screeningForm, weight:e.target.value})}/></div><button onClick={handleSaveScreening} className="w-full bg-orange-600 text-white p-3 rounded font-bold">ส่งตรวจ</button></div> : <div className="text-center text-gray-400 mt-20">เลือกผู้ป่วย</div>}</div></div>}
 
-                            {activeTab === 'doctor' && <div className="flex flex-col lg:flex-row gap-4 h-full"><div className="w-full lg:w-1/3 bg-white border rounded-xl overflow-hidden flex flex-col"><div className="p-3 bg-blue-100 font-bold text-blue-800">คิวรอตรวจ</div><div className="flex-1 overflow-auto">{patients.filter(p=>p.status==='waiting').map(p=><div key={p.id} onClick={()=>handleSelectPatient(p)} className="p-3 border-b hover:bg-blue-50 cursor-pointer flex justify-between relative group"><span>{p.queue} {p.name} ({p.age} ปี)</span><button onClick={e=>handleEditPatientClick(e,p)} className="hidden group-hover:block bg-white p-1 rounded border absolute right-2 top-2"><Icons.Edit size={12}/></button></div>)}</div></div><div className="flex-1 bg-white border rounded-xl p-6 overflow-auto">{selectedPatient ? <div className="space-y-4"><div className="flex justify-between border-b pb-2"><div><h3 className="font-bold text-lg">{selectedPatient.name} ({selectedPatient.age} ปี)</h3><span className="text-sm text-slate-500">โทร: {selectedPatient.phone}</span></div><span className="text-blue-600 font-bold text-xl">{selectedPatient.queue}</span></div>{(selectedPatient.allergies)&&<div className="bg-red-100 text-red-800 p-2 rounded font-bold animate-pulse">⚠️ แพ้: {selectedPatient.allergies}</div>}<div className="grid grid-cols-4 gap-3"><div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 text-center shadow-sm"><div className="text-[10px] text-indigo-500 font-bold uppercase">ความดัน (BP)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.bp || '-'}</div><div className="text-[10px] text-slate-400">mmHg</div></div><div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 text-center shadow-sm"><div className="text-[10px] text-emerald-500 font-bold uppercase">อุณหภูมิ (T)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.temp || '-'}</div><div className="text-[10px] text-slate-400">°C</div></div><div className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-center shadow-sm"><div className="text-[10px] text-rose-500 font-bold uppercase">ชีพจร (P)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.pulse || '-'}</div><div className="text-[10px] text-slate-400">bpm</div></div><div className="bg-amber-50 p-3 rounded-lg border border-amber-100 text-center shadow-sm"><div className="text-[10px] text-amber-500 font-bold uppercase">น้ำหนัก (W)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.weight || '-'}</div><div className="text-[10px] text-slate-400">kg</div></div></div><div><label className="font-bold">อาการ</label><textarea className="w-full border p-2 rounded" rows="2" value={doctorVitals.symptom} onChange={e=>setDoctorVitals({...doctorVitals, symptom:e.target.value})}/></div><div><div className="flex justify-between"><label className="font-bold">วินิจฉัย</label><button onClick={()=>setShowDiagList(!showDiagList)} className="text-xs text-blue-600">ค้นหา</button></div>{showDiagList && <div className="border p-2 max-h-32 overflow-auto mb-2"><input className="w-full border p-1 mb-1" placeholder="ค้นหา..." value={diagSearch} onChange={e=>setDiagSearch(e.target.value)}/>{diagnosisList.filter(d=>d.name.includes(diagSearch)).map(d=><div key={d.code} onClick={()=>{setExamData(p=>({...p, diagnosis:p.diagnosis+'\n'+d.code+' '+d.name}));setShowDiagList(false)}} className="cursor-pointer hover:bg-blue-50 text-sm p-1">{d.name}</div>)}<div onClick={handleManualDiagClick} className="text-center text-blue-600 cursor-pointer font-bold">+ เพิ่มเอง</div></div>}<textarea className="w-full border p-2 rounded" rows="2" value={examData.diagnosis} onChange={e=>setExamData({...examData, diagnosis:e.target.value})}/></div><div><div className="flex justify-between"><label className="font-bold">สั่งยา</label><button onClick={()=>setShowRxList(!showRxList)} className="text-xs text-blue-600">ค้นหา</button></div>{showRxList && <div className="border p-2 max-h-40 overflow-auto mb-2"><div className="flex gap-2 mb-1"><input className="w-full border p-1" placeholder="ค้นหา..." value={rxSearch} onChange={e=>setRxSearch(e.target.value)}/><button onClick={handleManualMedClick} className="bg-blue-100 px-2 rounded font-bold text-xs">+</button><button onClick={()=>setShowAddDrugModal(true)} className="bg-green-100 px-2 rounded font-bold text-xs text-green-700">เพิ่มยาในระบบ</button></div>{medicineList.filter(d=>d.name.toLowerCase().includes(rxSearch.toLowerCase())).map(m=><div key={m.code} onClick={()=>handleMedClick(m)} className="cursor-pointer hover:bg-blue-50 p-1 border-b text-sm flex justify-between"><span>{m.name}</span><Icons.Calculator size={12}/></div>)}</div>}<textarea className="w-full border p-2 rounded" rows="4" value={examData.prescription} onChange={e=>setExamData({...examData, prescription:e.target.value})}/></div><div className="grid grid-cols-3 gap-2"><button onClick={handleOpenReferModal} className="col-span-1 bg-red-100 text-red-700 p-3 rounded font-bold border border-red-200">ส่งตัว</button><button onClick={handleSaveTreatment} className="col-span-1 bg-green-600 text-white p-3 rounded font-bold">บันทึกและส่งห้องยา</button><button onClick={handleSendBackToScreening} className="col-span-1 bg-yellow-100 text-yellow-800 p-3 rounded font-bold border border-yellow-200">ส่งกลับคัดกรอง</button></div></div> : <div className="text-center text-gray-400 mt-20">เลือกผู้ป่วย</div>}</div></div>}
+                            {activeTab === 'doctor' && <div className="flex flex-col lg:flex-row gap-4 h-full"><div className="w-full lg:w-1/3 bg-white border rounded-xl overflow-hidden flex flex-col"><div className="p-3 bg-blue-100 font-bold text-blue-800">คิวรอตรวจ</div><div className="flex-1 overflow-auto">{patients.filter(p=>p.status==='waiting').map(p=><div key={p.id} onClick={()=>handleSelectPatient(p)} className="p-3 border-b hover:bg-blue-50 cursor-pointer flex justify-between relative group"><span>{p.queue} {p.name} ({p.age} ปี)</span><button onClick={e=>handleEditPatientClick(e,p)} className="hidden group-hover:block bg-white p-1 rounded border absolute right-2 top-2"><Icons.Edit size={12}/></button></div>)}</div></div><div className="flex-1 bg-white border rounded-xl p-6 overflow-auto">{selectedPatient ? <div className="space-y-4"><div className="flex justify-between border-b pb-2"><div><h3 className="font-bold text-lg">{selectedPatient.name} ({selectedPatient.age} ปี)</h3><span className="text-sm text-slate-500">โทร: {selectedPatient.phone}</span></div><span className="text-blue-600 font-bold text-xl">{selectedPatient.queue}</span></div>{(selectedPatient.allergies)&&<div className="bg-red-100 text-red-800 p-2 rounded font-bold animate-pulse">⚠️ แพ้: {selectedPatient.allergies}</div>}<div className="grid grid-cols-4 gap-3"><div className="bg-indigo-50 p-3 rounded-lg border border-indigo-100 text-center shadow-sm"><div className="text-[10px] text-indigo-500 font-bold uppercase">ความดัน (BP)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.bp || '-'}</div><div className="text-[10px] text-slate-400">mmHg</div></div><div className="bg-emerald-50 p-3 rounded-lg border border-emerald-100 text-center shadow-sm"><div className="text-[10px] text-emerald-500 font-bold uppercase">อุณหภูมิ (T)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.temp || '-'}</div><div className="text-[10px] text-slate-400">°C</div></div><div className="bg-rose-50 p-3 rounded-lg border border-rose-100 text-center shadow-sm"><div className="text-[10px] text-rose-500 font-bold uppercase">ชีพจร (P)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.pulse || '-'}</div><div className="text-[10px] text-slate-400">bpm</div></div><div className="bg-amber-50 p-3 rounded-lg border border-amber-100 text-center shadow-sm"><div className="text-[10px] text-amber-500 font-bold uppercase">น้ำหนัก (W)</div><div className="text-lg font-bold text-slate-700">{doctorVitals.weight || '-'}</div><div className="text-[10px] text-slate-400">kg</div></div></div><div><label className="font-bold">อาการ</label><textarea className="w-full border p-2 rounded" rows="2" value={doctorVitals.symptom} onChange={e=>setDoctorVitals({...doctorVitals, symptom:e.target.value})}/></div><div><div className="flex justify-between"><label className="font-bold">วินิจฉัย</label><button onClick={()=>setShowDiagList(!showDiagList)} className="text-xs text-blue-600">ค้นหา</button></div>{showDiagList && <div className="border p-2 max-h-32 overflow-auto mb-2"><input className="w-full border p-1 mb-1" placeholder="ค้นหา..." value={diagSearch} onChange={e=>setDiagSearch(e.target.value)}/>{diagnosisList.filter(d=>d.name.includes(diagSearch)).map(d=><div key={d.code} onClick={()=>{setExamData(p=>({...p, diagnosis:p.diagnosis+'\n'+d.code+' '+d.name}));setShowDiagList(false)}} className="cursor-pointer hover:bg-blue-50 text-sm p-1">{d.name}</div>)}<div onClick={handleManualDiagClick} className="text-center text-blue-600 cursor-pointer font-bold">+ เพิ่มเอง</div></div>}<textarea className="w-full border p-2 rounded" rows="2" value={examData.diagnosis} onChange={e=>setExamData({...examData, diagnosis:e.target.value})}/></div><div><div className="flex justify-between"><label className="font-bold">สั่งยา</label><button onClick={()=>setShowRxList(!showRxList)} className="text-xs text-blue-600">ค้นหา</button></div>{showRxList && <div className="border p-2 max-h-40 overflow-auto mb-2"><div className="flex gap-2 mb-1"><input className="w-full border p-1" placeholder="ค้นหา..." value={rxSearch} onChange={e=>setRxSearch(e.target.value)}/><button onClick={handleManualMedClick} className="bg-blue-100 px-2 rounded font-bold text-xs">+</button><button onClick={()=>setShowAddDrugModal(true)} className="bg-green-100 px-2 rounded font-bold text-xs text-green-700">เพิ่มยาในระบบ</button></div>{medicineList.filter(d=>d.name.toLowerCase().includes(rxSearch.toLowerCase())).map(m=><div key={m.code} onClick={()=>handleMedClick(m)} className="cursor-pointer hover:bg-blue-50 p-1 border-b text-sm flex justify-between"><span>{m.name}</span><Icons.Calculator size={12} className="text-gray-400"/></div>)}</div>}<textarea className="w-full border p-2 rounded" rows="4" value={examData.prescription} onChange={e=>setExamData({...examData, prescription:e.target.value})}/></div><div className="grid grid-cols-3 gap-2"><button onClick={handleOpenReferModal} className="col-span-1 bg-red-100 text-red-700 p-3 rounded font-bold border border-red-200">ส่งตัว</button><button onClick={handleSaveTreatment} className="col-span-1 bg-green-600 text-white p-3 rounded font-bold">บันทึกและส่งห้องยา</button><button onClick={handleSendBackToScreening} className="col-span-1 bg-yellow-100 text-yellow-800 p-3 rounded font-bold border border-yellow-200">ส่งกลับคัดกรอง</button></div></div> : <div className="text-center text-gray-400 mt-20">เลือกผู้ป่วย</div>}</div></div>}
 
                             {activeTab === 'pharmacy' && <div className="flex flex-col lg:flex-row gap-4 h-full"><div className="w-full lg:w-1/3 bg-white border rounded-xl overflow-hidden flex flex-col"><div className="p-3 bg-purple-100 font-bold text-purple-800">รอจ่ายยา</div><div className="flex-1 overflow-auto">{patients.filter(p=>p.status==='pharmacy').map(p=><div key={p.id} onClick={()=>{setSelectedPharmacy(p); setPharmacyRx(p.treatment)}} className="p-3 border-b hover:bg-purple-50 cursor-pointer flex justify-between relative group"><div><span className="font-bold mr-2 text-purple-700">{p.queue}</span>{p.name} ({p.age} ปี)</div><div className="hidden group-hover:flex gap-1 absolute right-2 top-2"><button onClick={e=>handleEditPatientClick(e,p)} className="bg-white p-1 rounded border"><Icons.Edit size={12}/></button><button onClick={e=>handleDeletePatient(e,p)} className="bg-white p-1 rounded border text-red-500"><Icons.Trash2 size={12}/></button></div></div>)}</div></div><div className="flex-1 bg-white border rounded-xl p-6 overflow-auto">{selectedPharmacy ? <div className="space-y-4"><h3 className="font-bold text-lg border-b pb-2 flex justify-between"><span>{selectedPharmacy.name} ({selectedPharmacy.age} ปี)</span> <span className="text-sm text-slate-500 font-normal">({selectedPharmacy.phone})</span><span className="text-purple-600">{selectedPharmacy.queue}</span></h3><div className="bg-slate-50 p-2 rounded border text-sm"><span className="font-bold">วินิจฉัย:</span> {selectedPharmacy.diagnosis}</div><div className="border rounded"><div className="bg-slate-100 p-2 flex justify-between items-center"><div className="flex items-center gap-2"><span className="font-bold">รายการยา</span><button onClick={()=>setShowRxList(!showRxList)} className="text-xs bg-white border px-2 py-1 rounded text-blue-600 hover:bg-blue-50">+ เพิ่ม/ค้นหายา</button></div><button onClick={()=>handlePrintPreview(selectedPharmacy)} className="text-blue-600 text-xs flex gap-1 items-center font-bold"><Icons.Tag size={12}/> พิมพ์ฉลาก</button></div>{showRxList && <div className="border-b p-2 bg-slate-50 max-h-60 overflow-auto"><div className="flex gap-2 mb-2"><input className="w-full border p-1 rounded text-sm" placeholder="ค้นหาชื่อยา..." value={rxSearch} onChange={e=>setRxSearch(e.target.value)}/><button onClick={handleManualMedClick} className="bg-blue-100 px-2 rounded font-bold text-xs shrink-0">+</button><button onClick={()=>setShowAddDrugModal(true)} className="bg-green-100 px-2 rounded font-bold text-xs text-green-700 shrink-0">เพิ่มยาใหม่</button></div><div className="space-y-1">{medicineList.filter(d=>d.name.toLowerCase().includes(rxSearch.toLowerCase())).map(m=><div key={m.code} onClick={()=>handleMedClick(m)} className="cursor-pointer hover:bg-white p-1 border-b border-slate-200 text-sm flex justify-between items-center"><span>{m.name}</span><Icons.Calculator size={12} className="text-gray-400"/></div>)}</div></div>}<textarea className="w-full p-2 h-40 border-0 resize-none focus:ring-0" value={pharmacyRx||selectedPharmacy.treatment} onChange={e=>setPharmacyRx(e.target.value)}/></div><div className="grid grid-cols-3 gap-2"><button onClick={()=>handleDispense(selectedPharmacy)} className="col-span-2 w-full bg-purple-600 text-white p-3 rounded font-bold">ยืนยันการจ่ายยา</button><button onClick={handleSendBackToDoctor} className="col-span-1 bg-yellow-100 text-yellow-800 p-3 rounded font-bold border border-yellow-200">ส่งกลับห้องตรวจ</button></div></div> : <div className="text-center text-gray-400 mt-20">เลือกรายการ</div>}</div></div>}
                             
                             {activeTab === 'referral' && <div className="flex flex-col lg:flex-row gap-4 h-full"><div className="w-full lg:w-1/3 bg-white border rounded-xl overflow-hidden flex flex-col"><div className="p-3 bg-red-100 font-bold text-red-800 flex gap-2 items-center"><Icons.Ambulance size={16}/> รายการส่งต่อ</div><div className="flex-1 overflow-auto">{patients.filter(p=>p.status==='referred').map(p=><div key={p.id} onClick={()=>handleSelectReferral(p)} className={`p-3 border-b cursor-pointer flex justify-between group relative pr-16 ${selectedReferral?.id===p.id ? 'bg-red-50' : 'hover:bg-slate-50'}`}><div><span className="font-bold mr-2 text-red-700">{p.queue}</span>{p.name} ({p.age} ปี)</div><div className="text-xs text-slate-500">{p.referralData?.hospital}</div><div className="hidden group-hover:flex absolute right-2 top-2 gap-2 bg-white p-1 rounded shadow"><button onClick={(e) => handleEditPatientClick(e, p)} className="text-blue-600 hover:bg-blue-50 p-1 rounded"><Icons.Edit size={14} /></button><button onClick={(e) => handleDeletePatient(e, p)} className="text-red-600 hover:bg-red-50 p-1 rounded"><Icons.Trash2 size={14} /></button></div></div>)}</div></div><div className="flex-1 bg-white border rounded-xl p-6 overflow-auto flex flex-col items-center justify-center">{selectedReferral ? <div className="w-full max-w-2xl bg-white shadow-lg border p-8 space-y-6"><div className="text-center border-b pb-4"><h2 className="font-bold text-2xl">ใบส่งต่อผู้ป่วย</h2><p className="text-slate-500">ศูนย์อพยพอาคารวีสมหมาย</p></div><div className="grid grid-cols-2 gap-4"><div><strong>ชื่อ:</strong> {selectedReferral.name}</div><div><strong>ปลายทาง:</strong> {selectedReferral.referralData?.hospital}</div><div><strong>วินิจฉัย:</strong> {selectedReferral.diagnosis}</div><div><strong>ความเร่งด่วน:</strong> {selectedReferral.referralData?.urgency}</div></div><div className="bg-slate-50 p-4 rounded border"><p className="font-bold text-sm mb-1">สาเหตุการส่งต่อ</p><p>{selectedReferral.referralData?.reason}</p></div><button onClick={()=>window.print()} className="w-full bg-blue-600 text-white p-3 rounded font-bold flex items-center justify-center gap-2"><Icons.Printer/> พิมพ์ใบส่งตัว</button></div> : <div className="text-center text-gray-400">เลือกผู้ป่วยเพื่อดูรายละเอียด</div>}</div></div>}
 
-                            {activeTab === 'history' && <div className="bg-white border rounded-xl overflow-hidden p-6"><div className="flex items-center gap-2 mb-4"><span className="font-bold">เลือกวันที่:</span><input type="date" className="border p-2 rounded" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/></div><table className="w-full text-left"><thead className="bg-slate-50 border-b"><tr><th className="p-3">เวลา</th><th className="p-3">ชื่อ</th><th className="p-3">วินิจฉัย</th><th className="p-3">สถานะ</th><th className="p-3">จัดการ</th></tr></thead><tbody>{filteredPatients.filter(p=>['completed','referred'].includes(p.status)).length > 0 ? filteredPatients.filter(p=>['completed','referred'].includes(p.status)).map(p=><tr key={p.id} className="border-b hover:bg-slate-50"><td className="p-3 text-sm">{p.time}</td><td className="p-3">{p.name} <span className="text-gray-500 text-xs">({p.age} ปี)</span></td><td className="p-3 text-sm text-slate-600">{p.diagnosis}</td><td className="p-3">{p.status==='referred' ? <span className="bg-red-100 text-red-800 px-2 rounded text-xs">ส่งต่อ</span> : <span className="bg-green-100 text-green-800 px-2 rounded text-xs">เสร็จสิ้น</span>}</td><td className="p-3 flex gap-2"><button onClick={(e)=>handleEditPatientClick(e,p)} className="bg-blue-100 text-blue-600 p-1 rounded hover:bg-blue-200"><Icons.Edit size={16}/></button><button onClick={(e)=>handleDeletePatient(e,p)} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"><Icons.Trash2 size={16}/></button></td></tr>) : <tr><td colSpan="5" className="p-8 text-center text-gray-400">ไม่พบประวัติการรักษาในวันที่เลือก</td></tr>}</tbody></table></div>}
+                            {activeTab === 'history' && <div className="bg-white border rounded-xl overflow-hidden p-6"><div className="flex items-center gap-2 mb-4"><span className="font-bold">เลือกวันที่:</span><input type="date" className="border p-2 rounded" value={selectedDate} onChange={e=>setSelectedDate(e.target.value)}/></div><table className="w-full text-left"><thead className="bg-slate-50 border-b"><tr><th className="p-3">เวลา</th><th className="p-3">ชื่อ</th><th className="p-3">วินิจฉัย</th><th className="p-3">สถานะ</th><th className="p-3">จัดการ</th></tr></thead><tbody>{filteredPatients.length > 0 ? filteredPatients.map(p=><tr key={p.id} className="border-b hover:bg-slate-50"><td className="p-3 text-sm">{p.time}</td><td className="p-3">{p.name} <span className="text-gray-500 text-xs">({p.age} ปี)</span></td><td className="p-3 text-sm text-slate-600">{p.diagnosis || '-'}</td><td className="p-3">{p.status==='referred' ? <span className="bg-red-100 text-red-800 px-2 rounded text-xs">ส่งต่อ</span> : p.status==='completed' ? <span className="bg-green-100 text-green-800 px-2 rounded text-xs">เสร็จสิ้น</span> : p.status==='pharmacy' ? <span className="bg-purple-100 text-purple-800 px-2 rounded text-xs">รอจ่ายยา</span> : p.status==='waiting' ? <span className="bg-blue-100 text-blue-800 px-2 rounded text-xs">รอตรวจ</span> : <span className="bg-orange-100 text-orange-800 px-2 rounded text-xs">รอคัดกรอง</span>}</td><td className="p-3 flex gap-2"><button onClick={(e)=>handleEditPatientClick(e,p)} className="bg-blue-100 text-blue-600 p-1 rounded hover:bg-blue-200"><Icons.Edit size={16}/></button><button onClick={(e)=>handleDeletePatient(e,p)} className="bg-red-100 text-red-600 p-1 rounded hover:bg-red-200"><Icons.Trash2 size={16}/></button></td></tr>) : <tr><td colSpan="5" className="p-8 text-center text-gray-400">ไม่พบประวัติการรักษาในวันที่เลือก</td></tr>}</tbody></table></div>}
 
                             {activeTab === 'export' && (
                                 <div className="max-w-4xl mx-auto space-y-6">
