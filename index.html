@@ -827,8 +827,31 @@
                     lines.forEach(line => {
                         const cleanLine = line.trim();
                         if(!cleanLine) return;
-                        // แสดงชื่อโรคตามจริง ไม่จัดกลุ่ม
-                        stats[cleanLine] = (stats[cleanLine] || 0) + 1; 
+                        
+                        const parts = cleanLine.split(' ');
+                        const rawCode = parts[0].toUpperCase();
+                        const letter = rawCode.charAt(0);
+                        
+                        let group = 'อื่นๆ (Others)';
+                        if (['A', 'B'].includes(letter)) group = 'โรคติดเชื้อ (Infectious)';
+                        else if (['C', 'D'].includes(letter)) group = 'เนื้องอก/มะเร็ง (Neoplasms)';
+                        else if (letter === 'E') group = 'ต่อมไร้ท่อ/เบาหวาน (Endocrine)';
+                        else if (letter === 'F') group = 'สุขภาพจิต (Mental)';
+                        else if (letter === 'G') group = 'ระบบประสาท (Nervous)';
+                        else if (letter === 'H') group = 'ตาและหู (Eye/Ear)';
+                        else if (letter === 'I') group = 'ระบบไหลเวียนโลหิต/ความดัน (Circulatory)';
+                        else if (letter === 'J') group = 'ระบบทางเดินหายใจ (Respiratory)';
+                        else if (letter === 'K') group = 'ระบบทางเดินอาหาร (Digestive)';
+                        else if (letter === 'L') group = 'ผิวหนัง (Skin)';
+                        else if (letter === 'M') group = 'กล้ามเนื้อและกระดูก (Musculoskeletal)';
+                        else if (letter === 'N') group = 'ทางเดินปัสสาวะ (Genitourinary)';
+                        else if (['O', 'P', 'Q'].includes(letter)) group = 'แม่และเด็ก';
+                        else if (letter === 'R') group = 'อาการทั่วไป/ไม่ระบุ (Symptoms)';
+                        else if (['S', 'T'].includes(letter)) group = 'บาดเจ็บ/อุบัติเหตุ (Injury)';
+                        else if (['V', 'W', 'X', 'Y'].includes(letter)) group = 'สาเหตุภายนอก (External Causes)';
+                        else if (letter === 'Z') group = 'ตรวจสุขภาพ/ทั่วไป (General)';
+    
+                        stats[group] = (stats[group] || 0) + 1; 
                     });
                 });
                 return Object.entries(stats).sort((a,b) => b[1] - a[1]); 
